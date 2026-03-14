@@ -153,7 +153,7 @@
 
 <div class="flex flex-col h-full border-r border-gray-200 dark:border-gray-700 last:border-r-0">
 	<div
-		class="flex items-center justify-between px-3 py-1.5 border-b text-sm shrink-0
+		class="flex items-center justify-between px-3 py-1.5 border-b text-sm shrink-0 sticky top-0 z-10
 		{isBase
 			? 'bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800'
 			: 'bg-gray-50 border-gray-200 dark:bg-gray-800 dark:border-gray-700'}"
