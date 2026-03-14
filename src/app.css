@@ -25,6 +25,27 @@ body {
 	height: 100%;
 }
 
+/* Bring selection layer above content so it's visible over diff backgrounds */
+.cm-editor .cm-selectionLayer {
+	z-index: 2 !important;
+}
+
+.cm-selectionBackground {
+	background-color: rgba(59, 130, 246, 0.35) !important;
+}
+
+.cm-editor.cm-focused .cm-selectionBackground {
+	background-color: rgba(59, 130, 246, 0.45) !important;
+}
+
+.dark .cm-selectionBackground {
+	background-color: rgba(96, 165, 250, 0.35) !important;
+}
+
+.dark .cm-editor.cm-focused .cm-selectionBackground {
+	background-color: rgba(96, 165, 250, 0.45) !important;
+}
+
 .cm-editor .cm-scroller {
 	overflow: auto;
 }

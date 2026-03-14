@@ -21,7 +21,7 @@ export const lightTheme: Extension = [
 			backgroundColor: '#f6f8fa'
 		},
 		'.cm-selectionBackground': {
-			backgroundColor: '#c8d3f5 !important'
+			backgroundColor: 'rgba(59, 130, 246, 0.35) !important'
 		},
 		'&.cm-focused .cm-cursor': {
 			borderLeftColor: '#24292e'
