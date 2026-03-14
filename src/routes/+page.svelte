@@ -18,7 +18,7 @@
 <svelte:window onkeydown={handleKeydown} />
 
 <svelte:head>
-	<title>YeahDiff - Multi-Text Comparison</title>
+	<title>YeahDiff - Multi-Text Diff Comparison Tool</title>
 </svelte:head>
 
 <div class="flex flex-col h-full {settings.fullWidth ? '' : 'max-w-screen-2xl mx-auto w-full'}">
