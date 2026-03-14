@@ -54,20 +54,21 @@
 	<div class="flex items-center gap-1">
 		{#if settings.diffMode === 'base' && !isBase}
 			<button
-				class="px-2 py-0.5 text-xs rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 dark:text-gray-400 transition-colors"
+				class="px-2 py-0.5 text-xs rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 dark:text-gray-400 transition-colors flex items-center gap-1"
 				onclick={() => settings.setBaseIndex(paneIndex)}
 				title="Set as base"
 			>
+				<svg class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-2a6 6 0 100-12 6 6 0 000 12zm0-3a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
 				Set base
 			</button>
 		{/if}
 		{#if paneStore.count > 2}
 			<button
-				class="px-1.5 py-0.5 text-xs rounded hover:bg-red-100 dark:hover:bg-red-900 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+				class="p-0.5 rounded hover:bg-red-100 dark:hover:bg-red-900 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
 				onclick={() => paneStore.removePane(paneId)}
 				title="Remove pane"
 			>
-				x
+				<svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
 			</button>
 		{/if}
 	</div>
