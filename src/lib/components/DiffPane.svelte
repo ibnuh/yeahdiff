@@ -53,6 +53,15 @@
 			parent: containerEl
 		});
 
+		const initialContent = pane?.content ?? '';
+		if (initialContent.trim()) {
+			if (pane?.manualLanguage) {
+				applyLanguage(pane.manualLanguage);
+			} else {
+				runLanguageDetection(initialContent);
+			}
+		}
+
 		return () => {
 			if (detectTimeout) clearTimeout(detectTimeout);
 			view?.destroy();
