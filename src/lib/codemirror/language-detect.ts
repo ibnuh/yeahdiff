@@ -144,9 +144,17 @@ const languagePatterns: LanguagePattern[] = [
 	}
 ];
 
+export const availableLanguages: string[] = languagePatterns.map((p) => p.name);
+
 export interface DetectedLanguage {
 	name: string;
 	extension: Extension;
+}
+
+export async function loadLanguageByName(name: string): Promise<Extension | null> {
+	const pattern = languagePatterns.find((p) => p.name === name);
+	if (!pattern) return null;
+	return pattern.load();
 }
 
 export async function detectLanguage(content: string): Promise<DetectedLanguage | null> {

@@ -5,7 +5,7 @@
 	import { createBaseExtensions, languageCompartment, themeCompartment } from '../codemirror/setup.js';
 	import { setDiffDecorations } from '../codemirror/diff-decorations.js';
 	import { createSyncScrollPlugin } from '../codemirror/sync-scroll.js';
-	import { detectLanguage } from '../codemirror/language-detect.js';
+	import { detectLanguage, loadLanguageByName, availableLanguages } from '../codemirror/language-detect.js';
 	import { getThemeExtension } from '../codemirror/themes.js';
 	import { settings } from '../stores/settings.svelte.js';
 	import { paneStore } from '../stores/panes.svelte.js';
@@ -60,6 +60,8 @@
 	});
 
 	async function runLanguageDetection(content: string) {
+		if (pane?.manualLanguage) return;
+
 		const detected = await detectLanguage(content);
 		if (view && detected) {
 			paneStore.setDetectedLanguage(paneId, detected.name);
@@ -73,6 +75,36 @@
 			});
 		}
 	}
+
+	async function applyLanguage(name: string | null) {
+		if (!view) return;
+		if (name) {
+			const ext = await loadLanguageByName(name);
+			if (ext && view) {
+				view.dispatch({ effects: languageCompartment.reconfigure(ext) });
+			}
+		} else {
+			view.dispatch({ effects: languageCompartment.reconfigure([]) });
+			const content = view.state.doc.toString();
+			if (content.trim()) {
+				runLanguageDetection(content);
+			}
+		}
+	}
+
+	function handleLanguageChange(e: Event) {
+		const value = (e.target as HTMLSelectElement).value;
+		const lang = value === 'auto' ? null : value;
+		paneStore.setManualLanguage(paneId, lang);
+		applyLanguage(lang);
+	}
+
+	$effect(() => {
+		const manual = pane?.manualLanguage;
+		if (manual && view) {
+			applyLanguage(manual);
+		}
+	});
 
 	$effect(() => {
 		if (!view) return;
@@ -103,13 +135,19 @@
 			<span class="font-medium text-gray-700 dark:text-gray-300">
 				Pane {paneIndex + 1}
 			</span>
-			{#if pane?.detectedLanguage}
-				<span
-					class="px-1.5 py-0.5 text-xs rounded bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
-				>
-					{pane.detectedLanguage}
-				</span>
-			{/if}
+			<select
+				class="px-1 py-0.5 text-xs rounded bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border-none outline-none cursor-pointer"
+				value={pane?.manualLanguage ?? 'auto'}
+				onchange={handleLanguageChange}
+				title="Select language"
+			>
+				<option value="auto">
+					{pane?.manualLanguage ? 'Auto' : pane?.detectedLanguage ? `Auto (${pane.detectedLanguage})` : 'Auto'}
+				</option>
+				{#each availableLanguages as lang}
+					<option value={lang}>{lang}</option>
+				{/each}
+			</select>
 			{#if isBase}
 				<span
 					class="px-1.5 py-0.5 text-xs rounded bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"

@@ -2,6 +2,7 @@ export interface PaneData {
 	id: string;
 	content: string;
 	detectedLanguage: string | null;
+	manualLanguage: string | null;
 }
 
 let nextId = 0;
@@ -12,8 +13,8 @@ function createId(): string {
 
 class PaneStore {
 	panes = $state<PaneData[]>([
-		{ id: createId(), content: '', detectedLanguage: null },
-		{ id: createId(), content: '', detectedLanguage: null }
+		{ id: createId(), content: '', detectedLanguage: null, manualLanguage: null },
+		{ id: createId(), content: '', detectedLanguage: null, manualLanguage: null }
 	]);
 
 	count = $derived(this.panes.length);
@@ -22,8 +23,16 @@ class PaneStore {
 		this.panes.push({
 			id: createId(),
 			content: '',
-			detectedLanguage: null
+			detectedLanguage: null,
+			manualLanguage: null
 		});
+	}
+
+	setManualLanguage(id: string, language: string | null) {
+		const pane = this.panes.find((p) => p.id === id);
+		if (pane) {
+			pane.manualLanguage = language;
+		}
 	}
 
 	removePane(id: string) {
