@@ -2,7 +2,7 @@
 	import { EditorView } from '@codemirror/view';
 	import { EditorState } from '@codemirror/state';
 	import { onMount } from 'svelte';
-	import { createBaseExtensions, languageCompartment, themeCompartment } from '../codemirror/setup.js';
+	import { createBaseExtensions, languageCompartment, themeCompartment, wrapCompartment, getWrapExtension } from '../codemirror/setup.js';
 	import { setDiffDecorations } from '../codemirror/diff-decorations.js';
 	import { createSyncScrollPlugin } from '../codemirror/sync-scroll.js';
 	import { detectLanguage, loadLanguageByName, availableLanguages } from '../codemirror/language-detect.js';
@@ -27,7 +27,7 @@
 
 	onMount(() => {
 		const extensions = [
-			...createBaseExtensions(getThemeExtension(settings.isDark)),
+			...createBaseExtensions(getThemeExtension(settings.isDark), settings.wordWrap),
 			createSyncScrollPlugin(() => settings.syncScroll),
 			EditorView.updateListener.of((update) => {
 				if (update.docChanged) {
@@ -111,6 +111,13 @@
 		const themeExt = getThemeExtension(settings.isDark);
 		view.dispatch({
 			effects: themeCompartment.reconfigure(themeExt)
+		});
+	});
+
+	$effect(() => {
+		if (!view) return;
+		view.dispatch({
+			effects: wrapCompartment.reconfigure(getWrapExtension(settings.wordWrap))
 		});
 	});
 

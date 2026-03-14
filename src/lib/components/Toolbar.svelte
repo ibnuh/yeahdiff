@@ -67,6 +67,18 @@
 		</button>
 
 		<button
+			class="px-3 py-1.5 text-sm rounded-md transition-colors
+			{settings.wordWrap
+				? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+				: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}
+			hover:opacity-80"
+			onclick={() => settings.toggleWordWrap()}
+			title="Toggle word wrap"
+		>
+			Wrap {settings.wordWrap ? 'On' : 'Off'}
+		</button>
+
+		<button
 			class="px-3 py-1.5 text-sm rounded-md transition-colors bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
 			onclick={() => settings.toggleFullWidth()}
 			title="Toggle full width"

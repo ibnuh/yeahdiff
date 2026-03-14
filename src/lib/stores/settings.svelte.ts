@@ -20,6 +20,7 @@ class Settings {
 	theme = $state<'light' | 'dark' | 'system'>('system');
 	fullWidth = $state(true);
 	syncScroll = $state(true);
+	wordWrap = $state(false);
 	diffMode = $state<DiffMode>('base');
 	baseIndex = $state(0);
 
@@ -36,6 +37,7 @@ class Settings {
 			this.theme = loadFromStorage('yeahdiff-theme', 'system');
 			this.fullWidth = loadFromStorage('yeahdiff-fullWidth', true);
 			this.syncScroll = loadFromStorage('yeahdiff-syncScroll', true);
+			this.wordWrap = loadFromStorage('yeahdiff-wordWrap', false);
 			this.diffMode = loadFromStorage('yeahdiff-diffMode', 'base' as DiffMode);
 		}
 	}
@@ -53,6 +55,11 @@ class Settings {
 	toggleSyncScroll() {
 		this.syncScroll = !this.syncScroll;
 		saveToStorage('yeahdiff-syncScroll', this.syncScroll);
+	}
+
+	toggleWordWrap() {
+		this.wordWrap = !this.wordWrap;
+		saveToStorage('yeahdiff-wordWrap', this.wordWrap);
 	}
 
 	setDiffMode(mode: DiffMode) {

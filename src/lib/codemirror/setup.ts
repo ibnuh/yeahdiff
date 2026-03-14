@@ -1,4 +1,4 @@
-import { keymap, highlightSpecialChars, drawSelection, highlightActiveLine, lineNumbers, highlightActiveLineGutter } from '@codemirror/view';
+import { keymap, highlightSpecialChars, drawSelection, highlightActiveLine, lineNumbers, highlightActiveLineGutter, EditorView } from '@codemirror/view';
 import { EditorState, Compartment, type Extension } from '@codemirror/state';
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
 import { bracketMatching, foldGutter, foldKeymap, indentOnInput } from '@codemirror/language';
@@ -8,8 +8,13 @@ import { diffDecorationField } from './diff-decorations.js';
 
 export const languageCompartment = new Compartment();
 export const themeCompartment = new Compartment();
+export const wrapCompartment = new Compartment();
 
-export function createBaseExtensions(themeExtension: Extension): Extension[] {
+export function getWrapExtension(wrap: boolean): Extension {
+	return wrap ? EditorView.lineWrapping : [];
+}
+
+export function createBaseExtensions(themeExtension: Extension, wrap: boolean): Extension[] {
 	return [
 		lineNumbers(),
 		highlightActiveLineGutter(),
@@ -33,6 +38,7 @@ export function createBaseExtensions(themeExtension: Extension): Extension[] {
 		]),
 		languageCompartment.of([]),
 		themeCompartment.of(themeExtension),
+		wrapCompartment.of(getWrapExtension(wrap)),
 		diffDecorationField
 	];
 }
