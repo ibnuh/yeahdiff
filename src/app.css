@@ -60,3 +60,15 @@ body {
 .dark .cm-diff-removed-word {
 	background-color: var(--color-diff-removed-word-dark);
 }
+
+.cm-diff-padding {
+	background-color: #f0f0f0;
+	border-top: 1px dashed #d0d0d0;
+	border-bottom: 1px dashed #d0d0d0;
+}
+
+.dark .cm-diff-padding {
+	background-color: #1a1a2e;
+	border-top: 1px dashed #333;
+	border-bottom: 1px dashed #333;
+}

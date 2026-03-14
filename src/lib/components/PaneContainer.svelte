@@ -2,7 +2,7 @@
 	import { paneStore } from '../stores/panes.svelte.js';
 	import { settings } from '../stores/settings.svelte.js';
 	import { computePairwiseDiffs } from '../diff/engine.js';
-	import type { LineDiff, DiffResult } from '../diff/types.js';
+	import type { LineDiff, DiffResult, PaddingEntry } from '../diff/types.js';
 	import DiffPane from './DiffPane.svelte';
 
 	let diffResults = $state<Map<number, DiffResult>>(new Map());
@@ -13,6 +13,7 @@
 	$effect(() => {
 		const texts = textsSnapshot;
 		const mode = settings.diffMode;
+		const aligned = settings.alignedDiff;
 		const baseIdx = Math.min(settings.baseIndex, paneStore.count - 1);
 
 		if (baseIdx !== settings.baseIndex) {
@@ -23,7 +24,7 @@
 		diffTimeout = setTimeout(() => {
 			const hasContent = texts.some((t) => t.length > 0);
 			if (hasContent) {
-				diffResults = computePairwiseDiffs(texts, mode, baseIdx);
+				diffResults = computePairwiseDiffs(texts, mode, baseIdx, aligned);
 			} else {
 				diffResults = new Map();
 			}
@@ -39,6 +40,11 @@
 		return result?.changes ?? [];
 	}
 
+	function getPaddingForPane(index: number): PaddingEntry[] {
+		const result = diffResults.get(index);
+		return result?.padding ?? [];
+	}
+
 	const gridCols = $derived(`repeat(${paneStore.count}, minmax(0, 1fr))`);
 </script>
 
@@ -51,6 +57,7 @@
 			paneId={pane.id}
 			paneIndex={index}
 			diffs={getDiffsForPane(index)}
+			padding={getPaddingForPane(index)}
 		/>
 	{/each}
 </div>

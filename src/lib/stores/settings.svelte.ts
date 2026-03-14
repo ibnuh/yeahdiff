@@ -21,6 +21,7 @@ class Settings {
 	fullWidth = $state(true);
 	syncScroll = $state(true);
 	wordWrap = $state(false);
+	alignedDiff = $state(false);
 	diffMode = $state<DiffMode>('base');
 	baseIndex = $state(0);
 
@@ -38,6 +39,7 @@ class Settings {
 			this.fullWidth = loadFromStorage('yeahdiff-fullWidth', true);
 			this.syncScroll = loadFromStorage('yeahdiff-syncScroll', true);
 			this.wordWrap = loadFromStorage('yeahdiff-wordWrap', false);
+			this.alignedDiff = loadFromStorage('yeahdiff-alignedDiff', false);
 			this.diffMode = loadFromStorage('yeahdiff-diffMode', 'base' as DiffMode);
 		}
 	}
@@ -60,6 +62,11 @@ class Settings {
 	toggleWordWrap() {
 		this.wordWrap = !this.wordWrap;
 		saveToStorage('yeahdiff-wordWrap', this.wordWrap);
+	}
+
+	toggleAlignedDiff() {
+		this.alignedDiff = !this.alignedDiff;
+		saveToStorage('yeahdiff-alignedDiff', this.alignedDiff);
 	}
 
 	setDiffMode(mode: DiffMode) {

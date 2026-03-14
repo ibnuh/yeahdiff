@@ -3,21 +3,22 @@
 	import { EditorState } from '@codemirror/state';
 	import { onMount } from 'svelte';
 	import { createBaseExtensions, languageCompartment, themeCompartment, wrapCompartment, getWrapExtension } from '../codemirror/setup.js';
-	import { setDiffDecorations } from '../codemirror/diff-decorations.js';
+	import { setDiffDecorations, setPaddingDecorations } from '../codemirror/diff-decorations.js';
 	import { createSyncScrollPlugin } from '../codemirror/sync-scroll.js';
 	import { detectLanguage, loadLanguageByName, availableLanguages } from '../codemirror/language-detect.js';
 	import { getThemeExtension } from '../codemirror/themes.js';
 	import { settings } from '../stores/settings.svelte.js';
 	import { paneStore } from '../stores/panes.svelte.js';
-	import type { LineDiff } from '../diff/types.js';
+	import type { LineDiff, PaddingEntry } from '../diff/types.js';
 
 	interface Props {
 		paneId: string;
 		paneIndex: number;
 		diffs: LineDiff[];
+		padding: PaddingEntry[];
 	}
 
-	let { paneId, paneIndex, diffs }: Props = $props();
+	let { paneId, paneIndex, diffs, padding }: Props = $props();
 
 	let containerEl: HTMLDivElement;
 	let view: EditorView | null = null;
@@ -125,6 +126,16 @@
 		if (!view) return;
 		view.dispatch({
 			effects: setDiffDecorations.of(diffs)
+		});
+	});
+
+	$effect(() => {
+		if (!view) return;
+		view.dispatch({
+			effects: setPaddingDecorations.of({
+				padding,
+				lineHeight: view.defaultLineHeight
+			})
 		});
 	});
 

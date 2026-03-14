@@ -56,6 +56,18 @@
 	<div class="flex items-center gap-1">
 		<button
 			class="px-3 py-1.5 text-sm rounded-md transition-colors
+			{settings.alignedDiff
+				? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+				: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}
+			hover:opacity-80"
+			onclick={() => settings.toggleAlignedDiff()}
+			title="Toggle aligned diff (padding to keep matching lines at same position)"
+		>
+			Aligned {settings.alignedDiff ? 'On' : 'Off'}
+		</button>
+
+		<button
+			class="px-3 py-1.5 text-sm rounded-md transition-colors
 			{settings.syncScroll
 				? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
 				: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}
