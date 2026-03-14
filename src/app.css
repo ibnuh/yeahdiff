@@ -1,0 +1,62 @@
+@import 'tailwindcss';
+
+@theme {
+	--color-diff-added-light: oklch(0.92 0.08 145);
+	--color-diff-removed-light: oklch(0.92 0.08 25);
+	--color-diff-added-word-light: oklch(0.85 0.12 145);
+	--color-diff-removed-word-light: oklch(0.85 0.12 25);
+	--color-diff-added-dark: oklch(0.3 0.08 145);
+	--color-diff-removed-dark: oklch(0.3 0.08 25);
+	--color-diff-added-word-dark: oklch(0.4 0.12 145);
+	--color-diff-removed-word-dark: oklch(0.4 0.12 25);
+}
+
+html {
+	height: 100%;
+}
+
+body {
+	height: 100%;
+	margin: 0;
+	font-family: system-ui, -apple-system, sans-serif;
+}
+
+.cm-editor {
+	height: 100%;
+}
+
+.cm-editor .cm-scroller {
+	overflow: auto;
+}
+
+.cm-diff-added {
+	background-color: var(--color-diff-added-light);
+}
+
+.cm-diff-removed {
+	background-color: var(--color-diff-removed-light);
+}
+
+.cm-diff-added-word {
+	background-color: var(--color-diff-added-word-light);
+}
+
+.cm-diff-removed-word {
+	background-color: var(--color-diff-removed-word-light);
+}
+
+.dark .cm-diff-added {
+	background-color: var(--color-diff-added-dark);
+}
+
+.dark .cm-diff-removed {
+	background-color: var(--color-diff-removed-dark);
+}
+
+.dark .cm-diff-added-word {
+	background-color: var(--color-diff-added-word-dark);
+}
+
+.dark .cm-diff-removed-word {
+	background-color: var(--color-diff-removed-word-dark);
+}
