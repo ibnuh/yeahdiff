@@ -5,6 +5,7 @@
 
 	const shortcuts = [
 		{ key: 'Ctrl+N', action: 'Add new pane' },
+		{ key: 'Ctrl+F', action: 'Search across all panes' },
 		{ key: 'Ctrl+K', action: 'Show keyboard shortcuts' },
 	];
 

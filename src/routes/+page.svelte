@@ -5,11 +5,13 @@
 	import PaneHeader from '$lib/components/PaneHeader.svelte';
 	import MobilePaneTabs from '$lib/components/MobilePaneTabs.svelte';
 	import KeyboardShortcuts from '$lib/components/KeyboardShortcuts.svelte';
+	import SearchModal from '$lib/components/SearchModal.svelte';
 	import { settings } from '$lib/stores/settings.svelte.js';
 	import { paneStore } from '$lib/stores/panes.svelte.js';
 	import { loadFromHash } from '$lib/shareable.js';
 
 	let keyboardShortcutsModal: KeyboardShortcuts;
+	let searchModal: SearchModal;
 
 	function handleKeydown(e: KeyboardEvent) {
 		if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
@@ -19,6 +21,10 @@
 		if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
 			e.preventDefault();
 			keyboardShortcutsModal?.open();
+		}
+		if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+			e.preventDefault();
+			searchModal?.open();
 		}
 	}
 
@@ -38,7 +44,10 @@
 
 <div class="flex flex-col h-full {settings.fullWidth ? '' : 'max-w-screen-2xl mx-auto w-full'}">
 	<div class="sticky top-0 z-20 shrink-0">
-		<Toolbar onShowShortcuts={() => keyboardShortcutsModal?.open()} />
+		<Toolbar 
+		onShowShortcuts={() => keyboardShortcutsModal?.open()}
+		onSearch={() => searchModal?.open()}
+	/>
 		<!-- Desktop headers -->
 		<div class="hidden md:grid" style:grid-template-columns={gridCols}>
 			{#each paneStore.panes as pane, index (pane.id)}
@@ -52,3 +61,4 @@
 </div>
 
 <KeyboardShortcuts bind:this={keyboardShortcutsModal} />
+<SearchModal bind:this={searchModal} />
