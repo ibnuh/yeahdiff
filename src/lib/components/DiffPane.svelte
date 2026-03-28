@@ -23,8 +23,44 @@
 	let containerEl: HTMLDivElement;
 	let view: EditorView | null = null;
 	let detectTimeout: ReturnType<typeof setTimeout> | null = null;
+	let isDraggingOver = $state(false);
 
 	const pane = $derived(paneStore.panes.find((p) => p.id === paneId));
+
+	function handleDragOver(e: DragEvent) {
+		e.preventDefault();
+		isDraggingOver = true;
+	}
+
+	function handleDragLeave(e: DragEvent) {
+		if (e.target === containerEl) {
+			isDraggingOver = false;
+		}
+	}
+
+	async function handleDrop(e: DragEvent) {
+		e.preventDefault();
+		isDraggingOver = false;
+
+		const files = e.dataTransfer?.files;
+		if (!files || files.length === 0) return;
+
+		const file = files[0];
+		if (!file.type.startsWith('text/') && !file.name.match(/\.(txt|js|ts|jsx|tsx|json|xml|html|css|scss|md|py|rb|go|rs|java|c|cpp|h|hpp|swift|kt|php|sql|yaml|yml|sh|bash|zsh|fish)$/)) {
+			return;
+		}
+
+		try {
+			const text = await file.text();
+			if (view) {
+				view.dispatch({
+					changes: { from: 0, to: view.state.doc.length, insert: text }
+				});
+			}
+		} catch (err) {
+			console.error('Failed to read file:', err);
+		}
+	}
 
 	onMount(() => {
 		const extensions = [
@@ -142,4 +178,21 @@
 
 </script>
 
-<div class="h-full border-r border-gray-200 dark:border-gray-700 last:border-r-0 overflow-hidden" bind:this={containerEl}></div>
+<div
+	class="h-full border-r border-gray-200 dark:border-gray-700 last:border-r-0 overflow-hidden relative"
+	class:ring-2={isDraggingOver}
+	class:ring-blue-500={isDraggingOver}
+	class:ring-inset={isDraggingOver}
+	bind:this={containerEl}
+	ondragover={handleDragOver}
+	ondragleave={handleDragLeave}
+	ondrop={handleDrop}
+>
+	{#if isDraggingOver}
+		<div class="absolute inset-0 bg-blue-500/10 flex items-center justify-center z-10 pointer-events-none">
+			<div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+				Drop file to load
+			</div>
+		</div>
+	{/if}
+</div>
