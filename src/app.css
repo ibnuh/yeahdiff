@@ -21,8 +21,66 @@ body {
 	font-family: system-ui, -apple-system, sans-serif;
 }
 
+/* Warm, pleasant light theme colors */
+:root {
+	--app-bg: #faf9f7;
+	--app-fg: #2d3748;
+	--app-surface: #ffffff;
+	--app-surface-elevated: #ffffff;
+	--app-border: #e2e0dc;
+	--app-muted: #718096;
+	--app-hover: #f5f3f0;
+}
+
+.dark {
+	--app-bg: #111827;
+	--app-fg: #f3f4f6;
+	--app-surface: #1f2937;
+	--app-surface-elevated: #374151;
+	--app-border: #374151;
+	--app-muted: #9ca3af;
+	--app-hover: #374151;
+}
+
+.app-bg {
+	background-color: var(--app-bg);
+}
+
+.app-text {
+	color: var(--app-fg);
+}
+
+.app-surface {
+	background-color: var(--app-surface);
+}
+
+.app-border {
+	border-color: var(--app-border);
+}
+
+.app-muted {
+	color: var(--app-muted);
+}
+
 .cm-editor {
 	height: 100%;
+}
+
+/* Mobile: larger line number gutters for touch */
+@media (pointer: coarse) {
+	.cm-gutters {
+		min-width: 44px !important;
+	}
+	
+	.cm-lineNumbers .cm-gutterElement {
+		min-width: 44px !important;
+		padding: 0 8px !important;
+		font-size: 14px !important;
+	}
+	
+	.cm-content {
+		font-size: 14px !important;
+	}
 }
 
 /* Bring selection layer above content so it's visible over diff backgrounds */
@@ -83,9 +141,9 @@ body {
 }
 
 .cm-diff-padding {
-	background-color: #f0f0f0;
-	border-top: 1px dashed #d0d0d0;
-	border-bottom: 1px dashed #d0d0d0;
+	background-color: #f0eee9;
+	border-top: 1px dashed #d8d4cd;
+	border-bottom: 1px dashed #d8d4cd;
 }
 
 .dark .cm-diff-padding {

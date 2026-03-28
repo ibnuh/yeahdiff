@@ -14,9 +14,27 @@ export function getWrapExtension(wrap: boolean): Extension {
 	return wrap ? EditorView.lineWrapping : [];
 }
 
+// Check if device is touch/mobile
+function isTouchDevice(): boolean {
+	if (typeof window === 'undefined') return false;
+	return window.matchMedia('(pointer: coarse)').matches || 
+		   'ontouchstart' in window || 
+		   navigator.maxTouchPoints > 0;
+}
+
+// Mobile-optimized line numbers with larger touch targets
+function createLineNumbers(): Extension {
+	const isMobile = isTouchDevice();
+	return lineNumbers({
+		formatNumber: (lineNo) => lineNo.toString()
+	});
+}
+
 export function createBaseExtensions(themeExtension: Extension, wrap: boolean): Extension[] {
+	const isMobile = isTouchDevice();
+	
 	return [
-		lineNumbers(),
+		createLineNumbers(),
 		highlightActiveLineGutter(),
 		highlightSpecialChars(),
 		history(),
@@ -36,6 +54,13 @@ export function createBaseExtensions(themeExtension: Extension, wrap: boolean): 
 			...foldKeymap,
 			indentWithTab
 		]),
+		// Mobile-specific: prevent native touch scrolling from interfering
+		isMobile ? EditorView.domEventHandlers({
+			touchstart: (e, view) => {
+				// Let CodeMirror handle touch events for editing
+				return false;
+			}
+		}) : [],
 		languageCompartment.of([]),
 		themeCompartment.of(themeExtension),
 		wrapCompartment.of(getWrapExtension(wrap)),
