@@ -7,3 +7,10 @@ build
 !.env.example
 dist
 *.local
+# Cloudflare Types
+/worker-configuration.d.ts
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
