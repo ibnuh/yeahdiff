@@ -2,6 +2,7 @@
 	import { availableLanguages } from '../codemirror/language-detect.js';
 	import { settings } from '../stores/settings.svelte.js';
 	import { paneStore } from '../stores/panes.svelte.js';
+	import { formatLineCount } from '../large-file-utils.js';
 
 	interface Props {
 		paneId: string;
@@ -12,6 +13,8 @@
 
 	const pane = $derived(paneStore.panes.find((p) => p.id === paneId));
 	const isBase = $derived(settings.diffMode === 'base' && settings.baseIndex === paneIndex);
+	
+	const lineCount = $derived(pane?.content ? pane.content.split('\n').length : 0);
 
 	function handleLanguageChange(e: Event) {
 		const value = (e.target as HTMLSelectElement).value;
@@ -40,6 +43,11 @@
 		<span class="font-medium text-gray-700 dark:text-gray-300">
 			Pane {paneIndex + 1}
 		</span>
+		{#if lineCount > 0}
+			<span class="text-xs text-gray-400 dark:text-gray-500">
+				{formatLineCount(lineCount)}
+			</span>
+		{/if}
 		<select
 			class="px-1 py-0.5 text-xs rounded bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border-none outline-none cursor-pointer"
 			value={pane?.manualLanguage ?? 'auto'}

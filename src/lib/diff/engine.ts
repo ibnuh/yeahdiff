@@ -1,5 +1,6 @@
 import { diffLines, diffWords } from 'diff';
 import type { DiffResult, LineDiff, WordDiff, DiffMode, PaddingEntry } from './types.js';
+import { shouldSkipDiff, MAX_DIFF_LINES } from '../large-file-utils.js';
 
 function computeWordDiffForLine(lineA: string, lineB: string): WordDiff[] {
 	const result = diffWords(lineA, lineB);
@@ -217,6 +218,16 @@ export function computePairwiseDiffs(
 	aligned: boolean = false
 ): Map<number, DiffResult> {
 	const results = new Map<number, DiffResult>();
+	
+	// Check if any file is too large for diff computation
+	const totalLines = texts.reduce((sum, text) => sum + text.split('\n').length, 0);
+	if (shouldSkipDiff(totalLines)) {
+		// Return empty results for large files
+		for (let i = 0; i < texts.length; i++) {
+			results.set(i, { paneIndex: i, basePaneIndex: baseIndex, changes: [], padding: [] });
+		}
+		return results;
+	}
 
 	if (!aligned) {
 		if (mode === 'base') {
