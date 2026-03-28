@@ -18,6 +18,16 @@
 		const lang = value === 'auto' ? null : value;
 		paneStore.setManualLanguage(paneId, lang);
 	}
+
+	function copyContent() {
+		if (pane?.content) {
+			navigator.clipboard.writeText(pane.content);
+		}
+	}
+
+	function clearContent() {
+		paneStore.updateContent(paneId, '');
+	}
 </script>
 
 <div
@@ -52,6 +62,22 @@
 		{/if}
 	</div>
 	<div class="flex items-center gap-1">
+		{#if pane?.content}
+			<button
+				class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+				onclick={copyContent}
+				title="Copy content"
+			>
+				<svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"/><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"/></svg>
+			</button>
+			<button
+				class="p-0.5 rounded hover:bg-red-100 dark:hover:bg-red-900 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+				onclick={clearContent}
+				title="Clear content"
+			>
+				<svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+			</button>
+		{/if}
 		{#if settings.diffMode === 'base' && !isBase}
 			<button
 				class="px-2 py-0.5 text-xs rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 dark:text-gray-400 transition-colors flex items-center gap-1"
