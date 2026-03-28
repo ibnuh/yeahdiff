@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import Toolbar from '$lib/components/Toolbar.svelte';
 	import PaneContainer from '$lib/components/PaneContainer.svelte';
 	import PaneHeader from '$lib/components/PaneHeader.svelte';
@@ -6,6 +7,7 @@
 	import KeyboardShortcuts from '$lib/components/KeyboardShortcuts.svelte';
 	import { settings } from '$lib/stores/settings.svelte.js';
 	import { paneStore } from '$lib/stores/panes.svelte.js';
+	import { loadFromHash } from '$lib/shareable.js';
 
 	let keyboardShortcutsModal: KeyboardShortcuts;
 
@@ -21,6 +23,11 @@
 	}
 
 	const gridCols = $derived(`repeat(${paneStore.count}, minmax(0, 1fr))`);
+
+	onMount(() => {
+		// Load from URL hash if present
+		loadFromHash();
+	});
 </script>
 
 <svelte:window onkeydown={handleKeydown} />

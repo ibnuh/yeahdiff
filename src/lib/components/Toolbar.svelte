@@ -2,6 +2,7 @@
 	import { settings } from '../stores/settings.svelte.js';
 	import { paneStore } from '../stores/panes.svelte.js';
 	import ThemeSelector from './ThemeSelector.svelte';
+	import { copyShareableUrl } from '../shareable.js';
 
 	interface Props {
 		onShowShortcuts?: () => void;
@@ -10,6 +11,7 @@
 	let { onShowShortcuts }: Props = $props();
 
 	let mobileMenuOpen = $state(false);
+	let showCopied = $state(false);
 
 	function closeMenu() {
 		mobileMenuOpen = false;
@@ -20,6 +22,12 @@
 		if (e.target === e.currentTarget) {
 			closeMenu();
 		}
+	}
+
+	function handleShare() {
+		copyShareableUrl();
+		showCopied = true;
+		setTimeout(() => showCopied = false, 2000);
 	}
 </script>
 
@@ -134,6 +142,22 @@
 				<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
 			</svg>
 			Help
+		</button>
+
+		<button
+			type="button"
+			class="hidden md:flex px-3 py-1.5 text-sm rounded-md transition-colors bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-300 items-center gap-1.5"
+			onclick={handleShare}
+			title="Copy shareable link"
+		>
+			<svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+				<path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z"/>
+			</svg>
+			{#if showCopied}
+				Copied!
+			{:else}
+				Share
+			{/if}
 		</button>
 
 		<a
