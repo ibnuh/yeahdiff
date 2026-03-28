@@ -4,16 +4,16 @@ import { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
 import { tags } from '@lezer/highlight';
 import type { Extension } from '@codemirror/state';
 
-// Warm, pleasant light theme colors (not stark white)
+// Clean, high-contrast light theme colors
 const lightColors = {
-	bg: '#faf9f7',           // Warm off-white background
-	fg: '#2d3748',           // Dark gray text (not pure black)
-	lineBg: '#f5f3f0',       // Slightly darker for gutters
-	lineFg: '#718096',       // Muted gray for line numbers
-	border: '#e2e0dc',       // Subtle warm border
-	activeLine: '#ebe9e6',   // Very subtle highlight
-	selection: 'rgba(66, 153, 225, 0.25)',
-	cursor: '#2d3748'
+	bg: '#ffffff',           // Pure white background for readability
+	fg: '#1a1a1a',           // Near-black text for maximum contrast
+	lineBg: '#f8f9fa',       // Light gray for gutters
+	lineFg: '#495057',       // Darker gray for line numbers (better visibility)
+	border: '#dee2e6',       // Clear border
+	activeLine: '#e9ecef',   // Visible highlight
+	selection: 'rgba(13, 110, 253, 0.25)',
+	cursor: '#1a1a1a'
 };
 
 // Custom syntax highlighting for light theme

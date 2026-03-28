@@ -1,14 +1,15 @@
 @import 'tailwindcss';
 
 @theme {
-	--color-diff-added-light: oklch(0.92 0.08 145);
-	--color-diff-removed-light: oklch(0.92 0.08 25);
-	--color-diff-added-word-light: oklch(0.85 0.12 145);
-	--color-diff-removed-word-light: oklch(0.85 0.12 25);
-	--color-diff-added-dark: oklch(0.3 0.08 145);
-	--color-diff-removed-dark: oklch(0.3 0.08 25);
-	--color-diff-added-word-dark: oklch(0.4 0.12 145);
-	--color-diff-removed-word-dark: oklch(0.4 0.12 25);
+	/* Using hex colors for better browser compatibility */
+	--color-diff-added-light: #dcfce7;
+	--color-diff-removed-light: #fee2e2;
+	--color-diff-added-word-light: #86efac;
+	--color-diff-removed-word-light: #fca5a5;
+	--color-diff-added-dark: #14532d;
+	--color-diff-removed-dark: #7f1d1d;
+	--color-diff-added-word-dark: #166534;
+	--color-diff-removed-word-dark: #991b1b;
 }
 
 html {
@@ -21,15 +22,15 @@ body {
 	font-family: system-ui, -apple-system, sans-serif;
 }
 
-/* Warm, pleasant light theme colors */
+/* Clean, high-contrast light theme colors */
 :root {
-	--app-bg: #faf9f7;
-	--app-fg: #2d3748;
+	--app-bg: #ffffff;
+	--app-fg: #1a1a1a;
 	--app-surface: #ffffff;
-	--app-surface-elevated: #ffffff;
-	--app-border: #e2e0dc;
-	--app-muted: #718096;
-	--app-hover: #f5f3f0;
+	--app-surface-elevated: #f8f9fa;
+	--app-border: #dee2e6;
+	--app-muted: #6c757d;
+	--app-hover: #e9ecef;
 }
 
 .dark {
@@ -89,19 +90,19 @@ body {
 }
 
 .cm-selectionBackground {
-	background-color: rgba(59, 130, 246, 0.35) !important;
+	background-color: rgba(13, 110, 253, 0.3) !important;
 }
 
 .cm-editor.cm-focused .cm-selectionBackground {
-	background-color: rgba(59, 130, 246, 0.45) !important;
+	background-color: rgba(13, 110, 253, 0.4) !important;
 }
 
 .dark .cm-selectionBackground {
-	background-color: rgba(96, 165, 250, 0.35) !important;
+	background-color: rgba(59, 130, 246, 0.4) !important;
 }
 
 .dark .cm-editor.cm-focused .cm-selectionBackground {
-	background-color: rgba(96, 165, 250, 0.45) !important;
+	background-color: rgba(59, 130, 246, 0.5) !important;
 }
 
 .cm-editor .cm-scroller {
@@ -141,9 +142,9 @@ body {
 }
 
 .cm-diff-padding {
-	background-color: #f0eee9;
-	border-top: 1px dashed #d8d4cd;
-	border-bottom: 1px dashed #d8d4cd;
+	background-color: #f1f3f5;
+	border-top: 1px dashed #ced4da;
+	border-bottom: 1px dashed #ced4da;
 }
 
 .dark .cm-diff-padding {
