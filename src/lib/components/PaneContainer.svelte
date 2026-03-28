@@ -46,10 +46,14 @@
 	}
 
 	const gridCols = $derived(`repeat(${paneStore.count}, minmax(0, 1fr))`);
+
+	// Mobile: show only active pane in stack mode
+	const activePane = $derived(paneStore.panes[settings.baseIndex] ?? paneStore.panes[0]);
 </script>
 
+<!-- Desktop: side-by-side grid -->
 <div
-	class="flex-1 min-h-0 grid"
+	class="hidden md:grid flex-1 min-h-0"
 	style:grid-template-columns={gridCols}
 >
 	{#each paneStore.panes as pane, index (pane.id)}
@@ -61,3 +65,33 @@
 		/>
 	{/each}
 </div>
+
+<!-- Mobile Stack Mode: show only active pane -->
+{#if settings.mobileLayout === 'stack'}
+	<div class="md:hidden flex-1 min-h-0">
+		<DiffPane
+			paneId={activePane.id}
+			paneIndex={settings.baseIndex}
+			diffs={getDiffsForPane(settings.baseIndex)}
+			padding={getPaddingForPane(settings.baseIndex)}
+		/>
+	</div>
+{/if}
+
+<!-- Mobile Compare Mode: horizontal scroll with all panes -->
+{#if settings.mobileLayout === 'compare'}
+	<div class="md:hidden flex-1 min-h-0 overflow-x-auto">
+		<div class="flex h-full" style="width: {paneStore.count * 100}vw; min-width: {paneStore.count * 320}px;">
+			{#each paneStore.panes as pane, index (pane.id)}
+				<div class="flex-1 min-w-[320px] h-full border-r border-gray-200 dark:border-gray-700 last:border-r-0">
+					<DiffPane
+						paneId={pane.id}
+						paneIndex={index}
+						diffs={getDiffsForPane(index)}
+						padding={getPaddingForPane(index)}
+					/>
+				</div>
+			{/each}
+		</div>
+	</div>
+{/if}

@@ -2,6 +2,7 @@
 	import Toolbar from '$lib/components/Toolbar.svelte';
 	import PaneContainer from '$lib/components/PaneContainer.svelte';
 	import PaneHeader from '$lib/components/PaneHeader.svelte';
+	import MobilePaneTabs from '$lib/components/MobilePaneTabs.svelte';
 	import { settings } from '$lib/stores/settings.svelte.js';
 	import { paneStore } from '$lib/stores/panes.svelte.js';
 
@@ -24,11 +25,14 @@
 <div class="flex flex-col h-full {settings.fullWidth ? '' : 'max-w-screen-2xl mx-auto w-full'}">
 	<div class="sticky top-0 z-20 shrink-0">
 		<Toolbar />
-		<div class="grid" style:grid-template-columns={gridCols}>
+		<!-- Desktop headers -->
+		<div class="hidden md:grid" style:grid-template-columns={gridCols}>
 			{#each paneStore.panes as pane, index (pane.id)}
 				<PaneHeader paneId={pane.id} paneIndex={index} />
 			{/each}
 		</div>
+		<!-- Mobile tabs -->
+		<MobilePaneTabs />
 	</div>
 	<PaneContainer />
 </div>

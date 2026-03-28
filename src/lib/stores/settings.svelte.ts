@@ -9,6 +9,7 @@ class Settings {
 	alignedDiff = $state(false);
 	diffMode = $state<DiffMode>('base');
 	baseIndex = $state(0);
+	mobileLayout = $state<'stack' | 'compare'>('stack');
 
 	isDark = $derived.by(() => {
 		if (this.theme === 'system') {
@@ -26,6 +27,7 @@ class Settings {
 			this.wordWrap = loadFromStorage('yeahdiff-wordWrap', false);
 			this.alignedDiff = loadFromStorage('yeahdiff-alignedDiff', false);
 			this.diffMode = loadFromStorage('yeahdiff-diffMode', 'base' as DiffMode);
+			this.mobileLayout = loadFromStorage('yeahdiff-mobileLayout', 'stack' as 'stack' | 'compare');
 		}
 	}
 
@@ -61,6 +63,11 @@ class Settings {
 
 	setBaseIndex(index: number) {
 		this.baseIndex = index;
+	}
+
+	toggleMobileLayout() {
+		this.mobileLayout = this.mobileLayout === 'stack' ? 'compare' : 'stack';
+		saveToStorage('yeahdiff-mobileLayout', this.mobileLayout);
 	}
 }
 
