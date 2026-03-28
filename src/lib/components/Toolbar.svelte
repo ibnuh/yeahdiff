@@ -3,6 +3,7 @@
 	import { paneStore } from '../stores/panes.svelte.js';
 	import ThemeSelector from './ThemeSelector.svelte';
 	import { copyShareableUrl } from '../shareable.js';
+	import { downloadSession, importSession } from '../session.js';
 
 	interface Props {
 		onShowShortcuts?: () => void;
@@ -13,6 +14,7 @@
 
 	let mobileMenuOpen = $state(false);
 	let showCopied = $state(false);
+	let fileInput: HTMLInputElement;
 
 	function closeMenu() {
 		mobileMenuOpen = false;
@@ -30,7 +32,34 @@
 		showCopied = true;
 		setTimeout(() => showCopied = false, 2000);
 	}
+
+	function handleExport() {
+		downloadSession();
+		closeMenu();
+	}
+
+	function handleImportClick() {
+		fileInput?.click();
+	}
+
+	async function handleFileSelect(e: Event) {
+		const target = e.target as HTMLInputElement;
+		const file = target.files?.[0];
+		if (file) {
+			await importSession(file);
+			closeMenu();
+		}
+		target.value = '';
+	}
 </script>
+
+<input
+	type="file"
+	accept=".json"
+	class="hidden"
+	bind:this={fileInput}
+	onchange={handleFileSelect}
+/>
 
 <div
 	class="flex items-center justify-between px-3 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shrink-0"
@@ -309,6 +338,22 @@
 						{/if}
 						{settings.fullWidth ? 'Full Width' : 'Contained'}
 					</span>
+				</button>
+
+				<button
+					class="w-full px-3 py-3 rounded-lg transition-colors flex items-center gap-2 min-h-[48px] bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+					onclick={handleExport}
+				>
+					<svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+					Export Session
+				</button>
+
+				<button
+					class="w-full px-3 py-3 rounded-lg transition-colors flex items-center gap-2 min-h-[48px] bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+					onclick={() => { handleImportClick(); closeMenu(); }}
+				>
+					<svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" transform="rotate(180 10 10)"/></svg>
+					Import Session
 				</button>
 
 				<a
