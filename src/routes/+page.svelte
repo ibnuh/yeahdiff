@@ -30,9 +30,12 @@
 
 	const gridCols = $derived(`repeat(${paneStore.count}, minmax(0, 1fr))`);
 
-	onMount(() => {
+	onMount(async () => {
 		// Load from URL hash if present
-		loadFromHash();
+		const loaded = await loadFromHash();
+		if (loaded) {
+			console.log('Successfully loaded state from URL hash');
+		}
 	});
 </script>
 

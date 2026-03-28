@@ -176,6 +176,18 @@
 		});
 	});
 
+	// Sync content from store to editor (for shareable URL loading)
+	$effect(() => {
+		if (!view || !pane) return;
+		const storeContent = pane.content;
+		const editorContent = view.state.doc.toString();
+		if (storeContent !== editorContent) {
+			view.dispatch({
+				changes: { from: 0, to: editorContent.length, insert: storeContent }
+			});
+		}
+	});
+
 </script>
 
 <div
