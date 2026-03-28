@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "npm run build && wrangler dev",
+    "gen": "wrangler types",
+    "deploy": "npm run build && wrangler deploy",
+    "cf-typegen": "wrangler types"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.1",
@@ -39,8 +42,10 @@
     "vite": "^6.4.1"
   },
   "devDependencies": {
+    "@sveltejs/adapter-cloudflare": "^7.2.6",
     "@types/diff": "^7.0.2",
     "svelte-check": "^4.4.5",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "wrangler": "^4.63.0"
   }
 }
