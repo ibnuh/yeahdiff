@@ -1,4 +1,5 @@
 import { paneStore } from './stores/panes.svelte.js';
+import { settings } from './stores/settings.svelte.js';
 
 interface SessionData {
 	version: number;
@@ -92,6 +93,3 @@ export async function importSession(file: File): Promise<boolean> {
 		return false;
 	}
 }
-
-// Need to import settings at runtime
-import { settings } from './stores/settings.svelte.js';

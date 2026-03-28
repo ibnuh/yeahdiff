@@ -1,5 +1,7 @@
 import { paneStore } from './stores/panes.svelte.js';
 
+const MAX_URL_LENGTH = 8000; // Browser limit is typically around 8000-10000 chars
+
 export function encodeStateToHash(): string {
 	const panes = paneStore.panes.map(p => ({
 		content: p.content,
@@ -7,12 +9,26 @@ export function encodeStateToHash(): string {
 	}));
 	
 	const state = JSON.stringify(panes);
+	
+	// Warn if content is too large for URL
+	if (state.length > 5000) {
+		console.warn('Content is large, URL may exceed browser limits');
+	}
+	
 	// Use TextEncoder for proper UTF-8 handling
 	const encoder = new TextEncoder();
 	const data = encoder.encode(state);
 	// Convert to base64url (URL-safe)
 	const base64 = btoa(String.fromCharCode(...data));
-	return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+	const hash = base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+	
+	// Check total URL length
+	const fullUrl = `${window.location.origin}${window.location.pathname}#${hash}`;
+	if (fullUrl.length > MAX_URL_LENGTH) {
+		console.error('URL too long, share may not work properly');
+	}
+	
+	return hash;
 }
 
 export function decodeStateFromHash(hash: string): Array<{content: string; lang?: string}> | null {
@@ -32,8 +48,7 @@ export function decodeStateFromHash(hash: string): Array<{content: string; lang?
 		const decoder = new TextDecoder();
 		const state = decoder.decode(bytes);
 		return JSON.parse(state);
-	} catch (err) {
-		console.error('Failed to decode hash:', err);
+	} catch {
 		return null;
 	}
 }
@@ -50,14 +65,8 @@ export async function loadFromHash(): Promise<boolean> {
 	
 	const state = decodeStateFromHash(hash);
 	if (!state || state.length === 0) {
-		console.warn('No valid state found in hash');
 		return false;
 	}
-	
-	console.log('Loading state from hash:', state.length, 'panes');
-	
-	// Store pane IDs to remove
-	const idsToRemove = paneStore.panes.map(p => p.id);
 	
 	// First, update existing panes or create new ones
 	for (let i = 0; i < state.length; i++) {

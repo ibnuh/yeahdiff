@@ -32,10 +32,7 @@
 
 	onMount(async () => {
 		// Load from URL hash if present
-		const loaded = await loadFromHash();
-		if (loaded) {
-			console.log('Successfully loaded state from URL hash');
-		}
+		await loadFromHash();
 	});
 </script>
 

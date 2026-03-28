@@ -5,6 +5,7 @@
 	const isBase = (index: number) => settings.diffMode === 'base' && settings.baseIndex === index;
 </script>
 
+{#if settings.mobileLayout === 'stack'}
 <div class="flex items-center gap-1 p-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 md:hidden overflow-x-auto">
 	{#each paneStore.panes as pane, index (pane.id)}
 		<button
@@ -22,3 +23,4 @@
 		</button>
 	{/each}
 </div>
+{/if}
