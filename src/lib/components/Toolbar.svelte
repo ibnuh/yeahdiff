@@ -3,6 +3,12 @@
 	import { paneStore } from '../stores/panes.svelte.js';
 	import ThemeSelector from './ThemeSelector.svelte';
 
+	interface Props {
+		onShowShortcuts?: () => void;
+	}
+
+	let { onShowShortcuts }: Props = $props();
+
 	let mobileMenuOpen = $state(false);
 
 	function closeMenu() {
@@ -117,6 +123,18 @@
 		</button>
 
 		<ThemeSelector />
+
+		<button
+			type="button"
+			class="hidden md:flex px-3 py-1.5 text-sm rounded-md transition-colors bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 items-center gap-1.5"
+			onclick={() => onShowShortcuts?.()}
+			title="Keyboard shortcuts (Ctrl+K)"
+		>
+			<svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+				<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+			</svg>
+			Help
+		</button>
 
 		<a
 			href="https://github.com/ibnuh/yeahdiff"
