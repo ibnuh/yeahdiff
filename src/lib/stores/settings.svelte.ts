@@ -1,6 +1,9 @@
 import type { DiffMode } from '../diff/types.js';
 import { loadFromStorage, saveToStorage } from './storage.js';
 
+export type ViewMode = 'split' | 'unified';
+export type ChangeStyle = 'background' | 'bars' | 'both';
+
 class Settings {
 	theme = $state<'light' | 'dark' | 'system'>('system');
 	fullWidth = $state(true);
@@ -10,6 +13,10 @@ class Settings {
 	diffMode = $state<DiffMode>('base');
 	baseIndex = $state(0);
 	mobileLayout = $state<'stack' | 'compare'>('stack');
+	/** Split = multi-pane side-by-side; unified = stacked A/B view for primary pair. */
+	viewMode = $state<ViewMode>('split');
+	/** How change lines are painted in editors. */
+	changeStyle = $state<ChangeStyle>('both');
 	/** Tracks system prefers-color-scheme so isDark stays reactive. */
 	private systemPrefersDark = $state(false);
 
@@ -32,6 +39,8 @@ class Settings {
 				'yeahdiff-mobileLayout',
 				'stack' as 'stack' | 'compare'
 			);
+			this.viewMode = loadFromStorage('yeahdiff-viewMode', 'split' as ViewMode);
+			this.changeStyle = loadFromStorage('yeahdiff-changeStyle', 'both' as ChangeStyle);
 
 			const mq = window.matchMedia('(prefers-color-scheme: dark)');
 			this.systemPrefersDark = mq.matches;
@@ -93,6 +102,27 @@ class Settings {
 	setWordWrap(value: boolean) {
 		this.wordWrap = value;
 		saveToStorage('yeahdiff-wordWrap', value);
+	}
+
+	setViewMode(mode: ViewMode) {
+		this.viewMode = mode;
+		saveToStorage('yeahdiff-viewMode', mode);
+	}
+
+	toggleViewMode() {
+		this.setViewMode(this.viewMode === 'split' ? 'unified' : 'split');
+	}
+
+	setChangeStyle(style: ChangeStyle) {
+		this.changeStyle = style;
+		saveToStorage('yeahdiff-changeStyle', style);
+	}
+
+	cycleChangeStyle() {
+		const order: ChangeStyle[] = ['both', 'background', 'bars'];
+		const idx = order.indexOf(this.changeStyle);
+		const next = order[(idx + 1) % order.length];
+		this.setChangeStyle(next);
 	}
 }
 

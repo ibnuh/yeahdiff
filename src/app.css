@@ -72,13 +72,13 @@ body {
 	.cm-gutters {
 		min-width: 44px !important;
 	}
-	
+
 	.cm-lineNumbers .cm-gutterElement {
 		min-width: 44px !important;
 		padding: 0 8px !important;
 		font-size: 14px !important;
 	}
-	
+
 	.cm-content {
 		font-size: 14px !important;
 	}
@@ -109,12 +109,17 @@ body {
 	overflow: auto;
 }
 
+/* Default / both: full-line backgrounds */
 .cm-diff-added {
 	background-color: var(--color-diff-added-light);
 }
 
 .cm-diff-removed {
 	background-color: var(--color-diff-removed-light);
+}
+
+.cm-diff-modified {
+	background-color: #fef3c7;
 }
 
 .cm-diff-added-word {
@@ -133,12 +138,133 @@ body {
 	background-color: var(--color-diff-removed-dark);
 }
 
+.dark .cm-diff-modified {
+	background-color: #78350f;
+}
+
 .dark .cm-diff-added-word {
 	background-color: var(--color-diff-added-word-dark);
 }
 
 .dark .cm-diff-removed-word {
 	background-color: var(--color-diff-removed-word-dark);
+}
+
+/* Gutter-style vertical bars (diffs.com-inspired) */
+.cm-editor[data-diff-style='bars'] .cm-diff-added,
+.cm-editor[data-diff-style='bars'] .cm-diff-removed,
+.cm-editor[data-diff-style='bars'] .cm-diff-modified {
+	background-color: transparent;
+}
+
+.cm-editor[data-diff-style='bars'] .cm-diff-added,
+.cm-editor[data-diff-style='both'] .cm-diff-added {
+	box-shadow: inset 3px 0 0 #22c55e;
+}
+
+.cm-editor[data-diff-style='bars'] .cm-diff-removed,
+.cm-editor[data-diff-style='both'] .cm-diff-removed {
+	box-shadow: inset 3px 0 0 #ef4444;
+}
+
+.cm-editor[data-diff-style='bars'] .cm-diff-modified,
+.cm-editor[data-diff-style='both'] .cm-diff-modified {
+	box-shadow: inset 3px 0 0 #f59e0b;
+}
+
+.dark .cm-editor[data-diff-style='bars'] .cm-diff-added,
+.dark .cm-editor[data-diff-style='both'] .cm-diff-added {
+	box-shadow: inset 3px 0 0 #4ade80;
+}
+
+.dark .cm-editor[data-diff-style='bars'] .cm-diff-removed,
+.dark .cm-editor[data-diff-style='both'] .cm-diff-removed {
+	box-shadow: inset 3px 0 0 #f87171;
+}
+
+.dark .cm-editor[data-diff-style='bars'] .cm-diff-modified,
+.dark .cm-editor[data-diff-style='both'] .cm-diff-modified {
+	box-shadow: inset 3px 0 0 #fbbf24;
+}
+
+/* Unified view */
+.yd-unified-line {
+	display: flex;
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+	font-size: 13px;
+	line-height: 1.5;
+	min-height: 1.5em;
+}
+
+.yd-unified-gutter {
+	flex: 0 0 auto;
+	display: flex;
+	gap: 0.35rem;
+	padding: 0 0.5rem;
+	user-select: none;
+	color: var(--app-muted);
+	border-right: 1px solid var(--app-border);
+	background: var(--app-surface-elevated);
+	min-width: 5.5rem;
+	justify-content: flex-end;
+	font-variant-numeric: tabular-nums;
+}
+
+.yd-unified-prefix {
+	flex: 0 0 1.25rem;
+	text-align: center;
+	user-select: none;
+	font-weight: 600;
+}
+
+.yd-unified-content {
+	flex: 1 1 auto;
+	padding: 0 0.75rem;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+.yd-unified-line.added {
+	background-color: var(--color-diff-added-light);
+}
+
+.yd-unified-line.removed {
+	background-color: var(--color-diff-removed-light);
+}
+
+.yd-unified-line.added .yd-unified-prefix {
+	color: #16a34a;
+}
+
+.yd-unified-line.removed .yd-unified-prefix {
+	color: #dc2626;
+}
+
+.dark .yd-unified-line.added {
+	background-color: var(--color-diff-added-dark);
+}
+
+.dark .yd-unified-line.removed {
+	background-color: var(--color-diff-removed-dark);
+}
+
+.yd-unified-hunk-sep {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.35rem 0.75rem;
+	font-size: 12px;
+	color: var(--app-muted);
+	background: var(--app-surface-elevated);
+	border-top: 1px solid var(--app-border);
+	border-bottom: 1px solid var(--app-border);
+	cursor: pointer;
+	width: 100%;
+	text-align: left;
+}
+
+.yd-unified-hunk-sep:hover {
+	background: var(--app-hover);
 }
 
 .cm-diff-padding {

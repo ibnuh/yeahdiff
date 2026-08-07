@@ -1,11 +1,18 @@
 import { EditorView, Decoration, WidgetType, type DecorationSet } from '@codemirror/view';
 import { StateField, StateEffect } from '@codemirror/state';
 import type { LineDiff, PaddingEntry } from '../diff/types.js';
+import type { ChangeStyle } from '../stores/settings.svelte.js';
 
 const addedLineDeco = Decoration.line({ class: 'cm-diff-added' });
 const removedLineDeco = Decoration.line({ class: 'cm-diff-removed' });
+const modifiedLineDeco = Decoration.line({ class: 'cm-diff-modified' });
 
-export const setDiffDecorations = StateEffect.define<LineDiff[]>();
+export type DiffDecorationPayload = {
+	changes: LineDiff[];
+	style?: ChangeStyle;
+};
+
+export const setDiffDecorations = StateEffect.define<DiffDecorationPayload | LineDiff[]>();
 
 export const diffDecorationField = StateField.define<DecorationSet>({
 	create() {
@@ -14,12 +21,35 @@ export const diffDecorationField = StateField.define<DecorationSet>({
 	update(decorations, tr) {
 		for (const effect of tr.effects) {
 			if (effect.is(setDiffDecorations)) {
-				return buildDecorations(effect.value, tr.state.doc);
+				const value = effect.value;
+				const changes = Array.isArray(value) ? value : value.changes;
+				return buildDecorations(changes, tr.state.doc);
 			}
 		}
 		return tr.docChanged ? Decoration.none : decorations;
 	},
 	provide: (f) => EditorView.decorations.from(f)
+});
+
+/** Editor attribute reflecting change style for CSS (background / bars / both). */
+export const setChangeStyleAttr = StateEffect.define<ChangeStyle>();
+
+export const changeStyleField = StateField.define<ChangeStyle>({
+	create() {
+		return 'both';
+	},
+	update(value, tr) {
+		for (const effect of tr.effects) {
+			if (effect.is(setChangeStyleAttr)) {
+				return effect.value;
+			}
+		}
+		return value;
+	},
+	provide: (f) =>
+		EditorView.editorAttributes.from(f, (style) => ({
+			'data-diff-style': style
+		}))
 });
 
 function buildDecorations(
@@ -30,16 +60,29 @@ function buildDecorations(
 	const inlineDecos: { from: number; to: number; deco: Decoration }[] = [];
 
 	for (const change of changes) {
-		if (change.type === 'unchanged') continue;
+		if (change.type === 'unchanged') {
+			continue;
+		}
 
-		if (change.lineNumber < 1 || change.lineNumber > doc.lines) continue;
+		if (change.lineNumber < 1 || change.lineNumber > doc.lines) {
+			continue;
+		}
 
 		const line = doc.line(change.lineNumber);
 
-		if (change.type === 'added' || (change.type === 'modified' && change.side !== 'base')) {
+		if (change.type === 'added') {
 			lineDecos.push({ from: line.from, deco: addedLineDeco });
-		} else if (change.type === 'removed' || (change.type === 'modified' && change.side === 'base')) {
+		} else if (change.type === 'removed') {
 			lineDecos.push({ from: line.from, deco: removedLineDeco });
+		} else if (change.type === 'modified') {
+			// Prefer side-specific colors when known; otherwise use modified class
+			if (change.side === 'base') {
+				lineDecos.push({ from: line.from, deco: removedLineDeco });
+			} else if (change.side === 'target') {
+				lineDecos.push({ from: line.from, deco: addedLineDeco });
+			} else {
+				lineDecos.push({ from: line.from, deco: modifiedLineDeco });
+			}
 		}
 
 		if (change.wordDiffs && change.wordDiffs.length > 0) {
@@ -122,12 +165,16 @@ function buildPaddingDecorations(
 	lineHeight: number,
 	doc: { lines: number; line: (n: number) => { from: number; to: number } }
 ): DecorationSet {
-	if (padding.length === 0) return Decoration.none;
+	if (padding.length === 0) {
+		return Decoration.none;
+	}
 
 	const decos = [];
 
 	for (const p of padding) {
-		if (p.count <= 0) continue;
+		if (p.count <= 0) {
+			continue;
+		}
 
 		let pos: number;
 		if (p.afterLine <= 0) {

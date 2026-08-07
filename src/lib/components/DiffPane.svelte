@@ -9,7 +9,11 @@
 		wrapCompartment,
 		getWrapExtension
 	} from '../codemirror/setup.js';
-	import { setDiffDecorations, setPaddingDecorations } from '../codemirror/diff-decorations.js';
+	import {
+		setDiffDecorations,
+		setPaddingDecorations,
+		setChangeStyleAttr
+	} from '../codemirror/diff-decorations.js';
 	import { createSyncScrollPlugin } from '../codemirror/sync-scroll.js';
 	import { detectLanguage, loadLanguageByName } from '../codemirror/language-detect.js';
 	import { getThemeExtension } from '../codemirror/themes.js';
@@ -190,7 +194,17 @@
 	$effect(() => {
 		if (!view) return;
 		view.dispatch({
-			effects: setDiffDecorations.of(diffs)
+			effects: setDiffDecorations.of({
+				changes: diffs,
+				style: settings.changeStyle
+			})
+		});
+	});
+
+	$effect(() => {
+		if (!view) return;
+		view.dispatch({
+			effects: setChangeStyleAttr.of(settings.changeStyle)
 		});
 	});
 

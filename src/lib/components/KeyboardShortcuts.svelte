@@ -7,6 +7,8 @@
 		{ key: 'Ctrl/⌘ + N', action: 'Add new pane' },
 		{ key: 'Ctrl/⌘ + F', action: 'Search across all panes' },
 		{ key: 'Ctrl/⌘ + K', action: 'Show keyboard shortcuts' },
+		{ key: 'Ctrl/⌘ + U', action: 'Toggle split / unified view' },
+		{ key: 'Alt + ↑ / ↓', action: 'Previous / next change' },
 		{ key: 'Esc', action: 'Close modal or menu' }
 	];
 

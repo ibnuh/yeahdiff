@@ -10,9 +10,26 @@
 	import { paneStore } from '$lib/stores/panes.svelte.js';
 	import { diffStore } from '$lib/stores/diff.svelte.js';
 	import { loadFromHash } from '$lib/shareable.js';
+	import { navigation } from '$lib/stores/navigation.svelte.js';
 
 	let keyboardShortcutsModal: KeyboardShortcuts;
 	let searchModal: SearchModal;
+
+	let changeCursor = -1;
+
+	function jumpChange(direction: 1 | -1) {
+		const { paneIndex, lines } = diffStore.getNavigationAnchors();
+		if (lines.length === 0) {
+			return;
+		}
+		if (changeCursor < 0 || changeCursor >= lines.length) {
+			changeCursor = direction > 0 ? 0 : lines.length - 1;
+		} else {
+			changeCursor = (changeCursor + direction + lines.length) % lines.length;
+		}
+		navigation.jumpTo(paneIndex, lines[changeCursor]);
+		settings.setBaseIndex(paneIndex);
+	}
 
 	function handleKeydown(e: KeyboardEvent) {
 		if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
@@ -26,6 +43,18 @@
 		if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
 			e.preventDefault();
 			searchModal?.open();
+		}
+		if (e.altKey && e.key === 'ArrowDown') {
+			e.preventDefault();
+			jumpChange(1);
+		}
+		if (e.altKey && e.key === 'ArrowUp') {
+			e.preventDefault();
+			jumpChange(-1);
+		}
+		if ((e.ctrlKey || e.metaKey) && e.key === 'u') {
+			e.preventDefault();
+			settings.toggleViewMode();
 		}
 	}
 

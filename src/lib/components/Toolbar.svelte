@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { settings } from '../stores/settings.svelte.js';
 	import { paneStore } from '../stores/panes.svelte.js';
+	import { diffStore } from '../stores/diff.svelte.js';
+	import { navigation } from '../stores/navigation.svelte.js';
 	import ThemeSelector from './ThemeSelector.svelte';
 	import { copyShareableUrl } from '../shareable.js';
 	import { downloadSession, importSession } from '../session.js';
@@ -12,6 +14,32 @@
 	}
 
 	let { onShowShortcuts, onSearch }: Props = $props();
+
+	let changeCursor = $state(-1);
+
+	function jumpChange(direction: 1 | -1) {
+		const { paneIndex, lines } = diffStore.getNavigationAnchors();
+		if (lines.length === 0) {
+			toast.info('No changes to jump to');
+			return;
+		}
+		if (changeCursor < 0 || changeCursor >= lines.length) {
+			changeCursor = direction > 0 ? 0 : lines.length - 1;
+		} else {
+			changeCursor = (changeCursor + direction + lines.length) % lines.length;
+		}
+		navigation.jumpTo(paneIndex, lines[changeCursor]);
+		// On mobile stack, switch to that pane
+		settings.setBaseIndex(paneIndex);
+	}
+
+	const changeStyleLabel = $derived(
+		settings.changeStyle === 'both'
+			? 'Bars+BG'
+			: settings.changeStyle === 'bars'
+				? 'Bars'
+				: 'BG'
+	);
 
 	let mobileMenuOpen = $state(false);
 	let fileInput: HTMLInputElement;
@@ -182,6 +210,66 @@
 				/></svg
 			>
 			<span class="hidden xl:inline">Align</span>
+		</button>
+
+		<div
+			class="hidden lg:flex items-center rounded-md overflow-hidden border border-gray-300 dark:border-gray-600 shrink-0"
+			role="group"
+			aria-label="View mode"
+		>
+			<button
+				type="button"
+				class="px-2 sm:px-3 py-1.5 text-xs sm:text-sm transition-colors
+					{settings.viewMode === 'split'
+						? 'bg-blue-500 text-white'
+						: 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
+				onclick={() => settings.setViewMode('split')}
+				title="Side-by-side panes"
+				aria-pressed={settings.viewMode === 'split'}
+			>
+				Split
+			</button>
+			<button
+				type="button"
+				class="px-2 sm:px-3 py-1.5 text-xs sm:text-sm transition-colors
+					{settings.viewMode === 'unified'
+						? 'bg-blue-500 text-white'
+						: 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
+				onclick={() => settings.setViewMode('unified')}
+				title="Unified stacked diff for primary pair"
+				aria-pressed={settings.viewMode === 'unified'}
+			>
+				Unified
+			</button>
+		</div>
+
+		<button
+			type="button"
+			class="hidden lg:flex px-2 sm:px-3 py-1.5 text-xs sm:text-sm rounded-md transition-colors bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 items-center gap-1"
+			onclick={() => settings.cycleChangeStyle()}
+			title="Cycle change style: bars+background, background only, bars only"
+		>
+			<span class="hidden xl:inline">{changeStyleLabel}</span>
+			<span class="xl:hidden">Style</span>
+		</button>
+
+		<button
+			type="button"
+			class="hidden lg:flex px-2 py-1.5 text-xs sm:text-sm rounded-md transition-colors bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+			onclick={() => jumpChange(-1)}
+			title="Previous change (Alt+↑)"
+			aria-label="Previous change"
+		>
+			↑
+		</button>
+		<button
+			type="button"
+			class="hidden lg:flex px-2 py-1.5 text-xs sm:text-sm rounded-md transition-colors bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+			onclick={() => jumpChange(1)}
+			title="Next change (Alt+↓)"
+			aria-label="Next change"
+		>
+			↓
 		</button>
 
 		<button
@@ -445,6 +533,28 @@
 					>
 					Align Lines
 				</span>
+			</button>
+
+			<button
+				class="w-full px-3 py-3 rounded-lg transition-colors flex items-center justify-between min-h-[48px] bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+				onclick={() => {
+					settings.toggleViewMode();
+					closeMenu();
+				}}
+			>
+				<span>View: {settings.viewMode === 'split' ? 'Split' : 'Unified'}</span>
+				<span class="text-xs opacity-70">toggle</span>
+			</button>
+
+			<button
+				class="w-full px-3 py-3 rounded-lg transition-colors flex items-center justify-between min-h-[48px] bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+				onclick={() => {
+					settings.cycleChangeStyle();
+					closeMenu();
+				}}
+			>
+				<span>Change style: {changeStyleLabel}</span>
+				<span class="text-xs opacity-70">cycle</span>
 			</button>
 
 			<button
