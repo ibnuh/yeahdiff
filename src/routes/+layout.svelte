@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import { settings } from '$lib/stores/settings.svelte.js';
+	import Toast from '$lib/components/Toast.svelte';
 	import type { Snippet } from 'svelte';
 
 	let { children }: { children: Snippet } = $props();
@@ -13,25 +14,9 @@
 			el.classList.remove('dark');
 		}
 	});
-
-	$effect(() => {
-		if (typeof window === 'undefined') return;
-		const mq = window.matchMedia('(prefers-color-scheme: dark)');
-		const handler = () => {
-			if (settings.theme === 'system') {
-				const el = document.documentElement;
-				if (mq.matches) {
-					el.classList.add('dark');
-				} else {
-					el.classList.remove('dark');
-				}
-			}
-		};
-		mq.addEventListener('change', handler);
-		return () => mq.removeEventListener('change', handler);
-	});
 </script>
 
 <div class="h-screen flex flex-col app-bg app-text">
 	{@render children()}
+	<Toast />
 </div>

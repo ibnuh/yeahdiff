@@ -295,3 +295,25 @@ export function computePairwiseDiffs(
 
 	return results;
 }
+
+export type DiffStats = {
+	added: number;
+	removed: number;
+	modified: number;
+};
+
+export function summarizeDiff(changes: LineDiff[]): DiffStats {
+	let added = 0;
+	let removed = 0;
+	let modified = 0;
+	for (const change of changes) {
+		if (change.type === 'added') {
+			added += 1;
+		} else if (change.type === 'removed') {
+			removed += 1;
+		} else if (change.type === 'modified') {
+			modified += 1;
+		}
+	}
+	return { added, removed, modified };
+}
