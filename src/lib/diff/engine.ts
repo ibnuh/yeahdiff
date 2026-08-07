@@ -211,6 +211,36 @@ function computeAlignedPair(textA: string, textB: string): AlignedPairResult {
 	return { changesA, changesB, paddingA, paddingB };
 }
 
+/**
+ * Merge change lists for the same pane (e.g. base vs multiple targets).
+ * Prefer stronger markers when the same line appears in more than one pair:
+ * modified > removed > added > unchanged.
+ */
+function mergeLineDiffs(lists: LineDiff[][]): LineDiff[] {
+	const rank: Record<string, number> = {
+		unchanged: 0,
+		added: 1,
+		removed: 2,
+		modified: 3
+	};
+	const byLine = new Map<number, LineDiff>();
+
+	for (const list of lists) {
+		for (const change of list) {
+			const existing = byLine.get(change.lineNumber);
+			if (!existing || rank[change.type] > rank[existing.type]) {
+				byLine.set(change.lineNumber, change);
+			}
+		}
+	}
+
+	return [...byLine.values()].sort((a, b) => a.lineNumber - b.lineNumber);
+}
+
+/**
+ * Always computes two-sided decorations so both panes show adds/removes/modifies.
+ * Padding (blank spacer rows) is only applied when `aligned` is true.
+ */
 export function computePairwiseDiffs(
 	texts: string[],
 	mode: DiffMode,
@@ -218,37 +248,21 @@ export function computePairwiseDiffs(
 	aligned: boolean = false
 ): Map<number, DiffResult> {
 	const results = new Map<number, DiffResult>();
-	
+	const emptyPadding: PaddingEntry[] = [];
+
 	// Check if any file is too large for diff computation
 	const totalLines = texts.reduce((sum, text) => sum + text.split('\n').length, 0);
 	if (shouldSkipDiff(totalLines)) {
-		// Return empty results for large files
 		for (let i = 0; i < texts.length; i++) {
 			results.set(i, { paneIndex: i, basePaneIndex: baseIndex, changes: [], padding: [] });
 		}
 		return results;
 	}
 
-	if (!aligned) {
-		if (mode === 'base') {
-			const baseText = texts[baseIndex] ?? '';
-			for (let i = 0; i < texts.length; i++) {
-				if (i === baseIndex) continue;
-				const changes = computeDiffBetweenTexts(baseText, texts[i]);
-				results.set(i, { paneIndex: i, basePaneIndex: baseIndex, changes, padding: [] });
-			}
-		} else {
-			for (let i = 0; i < texts.length - 1; i++) {
-				const changes = computeDiffBetweenTexts(texts[i], texts[i + 1]);
-				results.set(i + 1, { paneIndex: i + 1, basePaneIndex: i, changes, padding: [] });
-			}
-		}
-		return results;
-	}
-
 	if (mode === 'base') {
 		const baseText = texts[baseIndex] ?? '';
-		let basePairDone = false;
+		const baseChangeLists: LineDiff[][] = [];
+		const basePaddingLists: PaddingEntry[][] = [];
 
 		for (let i = 0; i < texts.length; i++) {
 			if (i === baseIndex) continue;
@@ -258,20 +272,27 @@ export function computePairwiseDiffs(
 				paneIndex: i,
 				basePaneIndex: baseIndex,
 				changes: pair.changesB,
-				padding: pair.paddingB
+				// Target padding only when align is on
+				padding: aligned ? pair.paddingB : emptyPadding
 			});
 
-			if (!basePairDone) {
-				results.set(baseIndex, {
-					paneIndex: baseIndex,
-					basePaneIndex: baseIndex,
-					changes: pair.changesA,
-					padding: pair.paddingA
-				});
-				basePairDone = true;
+			baseChangeLists.push(pair.changesA);
+			if (aligned) {
+				basePaddingLists.push(pair.paddingA);
 			}
 		}
+
+		// Base pane: union of removals/modifications against every target
+		results.set(baseIndex, {
+			paneIndex: baseIndex,
+			basePaneIndex: baseIndex,
+			changes: mergeLineDiffs(baseChangeLists),
+			// For multi-target, use padding from the first pair only (visual alignment
+			// against one target at a time; multi-target padding merge is ambiguous)
+			padding: aligned ? (basePaddingLists[0] ?? emptyPadding) : emptyPadding
+		});
 	} else {
+		// Adjacent: each pane vs its neighbor; both sides always get decorations
 		for (let i = 0; i < texts.length - 1; i++) {
 			const pair = computeAlignedPair(texts[i], texts[i + 1]);
 
@@ -280,7 +301,7 @@ export function computePairwiseDiffs(
 					paneIndex: i,
 					basePaneIndex: i,
 					changes: pair.changesA,
-					padding: pair.paddingA
+					padding: aligned ? pair.paddingA : emptyPadding
 				});
 			}
 
@@ -288,7 +309,7 @@ export function computePairwiseDiffs(
 				paneIndex: i + 1,
 				basePaneIndex: i,
 				changes: pair.changesB,
-				padding: pair.paddingB
+				padding: aligned ? pair.paddingB : emptyPadding
 			});
 		}
 	}
