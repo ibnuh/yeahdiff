@@ -27,7 +27,9 @@ function computeWordDiffForLine(lineA: string, lineB: string): WordDiff[] {
 }
 
 export function computeDiffBetweenTexts(textA: string, textB: string): LineDiff[] {
-	if (textA === textB) return [];
+	if (textA === textB) {
+		return [];
+	}
 
 	const result = diffLines(textA, textB);
 	const changes: LineDiff[] = [];
@@ -100,7 +102,9 @@ export function computeDiffBetweenTexts(textA: string, textB: string): LineDiff[
 
 export function computeAlignedPair(textA: string, textB: string): AlignedPairResult {
 	const empty: AlignedPairResult = { changesA: [], changesB: [], paddingA: [], paddingB: [] };
-	if (textA === textB) return empty;
+	if (textA === textB) {
+		return empty;
+	}
 
 	const result = diffLines(textA, textB);
 	const changesA: LineDiff[] = [];
@@ -388,12 +392,21 @@ export function buildHunks(
 		return [];
 	}
 
-	// Merge gap grows with context so nearby clusters become one hunk (git-style)
-	const mergeGap = Math.max(1, ctx * 2);
+	// Max unchanged lines between change clusters to still merge (git-style 2*context)
+	const mergeGap = ctx * 2;
 
 	const raw: DiffHunk[] = [];
 	let ia = 0;
 	let ib = 0;
+
+	/** True when `line` is within mergeGap unchanged lines of `end` (inclusive). */
+	function isNear(end: number, line: number): boolean {
+		if (end <= 0) {
+			return false;
+		}
+		// gap of unchanged lines between end and line is (line - end - 1)
+		return line - end - 1 <= mergeGap;
+	}
 
 	while (ia < a.length || ib < b.length) {
 		const nextA = ia < a.length ? a[ia].lineNumber : Infinity;
@@ -424,9 +437,9 @@ export function buildHunks(
 			grew = false;
 			if (ia < a.length) {
 				const line = a[ia].lineNumber;
-				const nearA = endA > 0 && line <= endA + mergeGap;
-				const nearB = endB > 0 && line <= endB + mergeGap;
-				const nearStart = startA === 0 && startB > 0 && line <= startB + mergeGap;
+				const nearA = isNear(endA, line);
+				const nearB = isNear(endB, line);
+				const nearStart = startA === 0 && isNear(startB > 0 ? startB : endB, line);
 				if (nearA || nearB || nearStart) {
 					if (startA === 0) {
 						startA = line;
@@ -440,9 +453,9 @@ export function buildHunks(
 			}
 			if (ib < b.length) {
 				const line = b[ib].lineNumber;
-				const nearB = endB > 0 && line <= endB + mergeGap;
-				const nearA = endA > 0 && line <= endA + mergeGap;
-				const nearStart = startB === 0 && startA > 0 && line <= startA + mergeGap;
+				const nearB = isNear(endB, line);
+				const nearA = isNear(endA, line);
+				const nearStart = startB === 0 && isNear(startA > 0 ? startA : endA, line);
 				if (nearB || nearA || nearStart) {
 					if (startB === 0) {
 						startB = line;
