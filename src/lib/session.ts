@@ -18,7 +18,7 @@ interface SessionData {
 export function exportSession(): string {
 	const data: SessionData = {
 		version: 1,
-		panes: paneStore.panes.map(p => ({
+		panes: paneStore.panes.map((p) => ({
 			content: p.content,
 			language: p.manualLanguage || p.detectedLanguage
 		})),
@@ -45,51 +45,44 @@ export function downloadSession() {
 	URL.revokeObjectURL(url);
 }
 
-export async function importSession(file: File): Promise<boolean> {
+export async function importSession(file: File): Promise<{ ok: boolean; error?: string }> {
 	try {
 		const text = await file.text();
 		const data: SessionData = JSON.parse(text);
-		
-		if (!data.panes || !Array.isArray(data.panes)) {
-			throw new Error('Invalid session file');
+
+		if (!data.panes || !Array.isArray(data.panes) || data.panes.length === 0) {
+			return { ok: false, error: 'Invalid session file: missing panes' };
 		}
-		
-		// Clear existing panes
-		while (paneStore.count > 0) {
-			paneStore.removePane(paneStore.panes[0].id);
-		}
-		
-		// Add panes from session
-		data.panes.forEach((paneData, index) => {
-			paneStore.addPane();
-			const newPane = paneStore.panes[index];
-			if (newPane) {
-				paneStore.updateContent(newPane.id, paneData.content);
-				if (paneData.language) {
-					paneStore.setManualLanguage(newPane.id, paneData.language);
-				}
-			}
-		});
-		
-		// Apply settings if present
+
+		// Atomic replace avoids the min-2-pane guard on removePane
+		paneStore.replaceAll(
+			data.panes.map((paneData) => ({
+				content: paneData.content ?? '',
+				manualLanguage: paneData.language ?? null
+			}))
+		);
+
 		if (data.settings) {
 			if (data.settings.diffMode) {
 				settings.setDiffMode(data.settings.diffMode);
 			}
 			if (data.settings.alignedDiff !== undefined) {
-				settings.alignedDiff = data.settings.alignedDiff;
+				settings.setAlignedDiff(data.settings.alignedDiff);
 			}
 			if (data.settings.syncScroll !== undefined) {
-				settings.syncScroll = data.settings.syncScroll;
+				settings.setSyncScroll(data.settings.syncScroll);
 			}
 			if (data.settings.wordWrap !== undefined) {
-				settings.wordWrap = data.settings.wordWrap;
+				settings.setWordWrap(data.settings.wordWrap);
 			}
 		}
-		
-		return true;
+
+		return { ok: true };
 	} catch (err) {
 		console.error('Failed to import session:', err);
-		return false;
+		return {
+			ok: false,
+			error: err instanceof Error ? err.message : 'Failed to import session'
+		};
 	}
 }

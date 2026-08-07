@@ -2,13 +2,21 @@
 	import { EditorView } from '@codemirror/view';
 	import { EditorState } from '@codemirror/state';
 	import { onMount } from 'svelte';
-	import { createBaseExtensions, languageCompartment, themeCompartment, wrapCompartment, getWrapExtension } from '../codemirror/setup.js';
+	import {
+		createBaseExtensions,
+		languageCompartment,
+		themeCompartment,
+		wrapCompartment,
+		getWrapExtension
+	} from '../codemirror/setup.js';
 	import { setDiffDecorations, setPaddingDecorations } from '../codemirror/diff-decorations.js';
 	import { createSyncScrollPlugin } from '../codemirror/sync-scroll.js';
 	import { detectLanguage, loadLanguageByName } from '../codemirror/language-detect.js';
 	import { getThemeExtension } from '../codemirror/themes.js';
 	import { settings } from '../stores/settings.svelte.js';
 	import { paneStore } from '../stores/panes.svelte.js';
+	import { navigation } from '../stores/navigation.svelte.js';
+	import { toast } from '../stores/toast.svelte.js';
 	import type { LineDiff, PaddingEntry } from '../diff/types.js';
 
 	interface Props {
@@ -21,7 +29,7 @@
 	let { paneId, paneIndex, diffs, padding }: Props = $props();
 
 	let containerEl: HTMLDivElement;
-	let view: EditorView | null = null;
+	let view = $state<EditorView | null>(null);
 	let detectTimeout: ReturnType<typeof setTimeout> | null = null;
 	let isDraggingOver = $state(false);
 
@@ -46,7 +54,13 @@
 		if (!files || files.length === 0) return;
 
 		const file = files[0];
-		if (!file.type.startsWith('text/') && !file.name.match(/\.(txt|js|ts|jsx|tsx|json|xml|html|css|scss|md|py|rb|go|rs|java|c|cpp|h|hpp|swift|kt|php|sql|yaml|yml|sh|bash|zsh|fish)$/)) {
+		if (
+			!file.type.startsWith('text/') &&
+			!file.name.match(
+				/\.(txt|js|ts|jsx|tsx|json|xml|html|css|scss|md|py|rb|go|rs|java|c|cpp|h|hpp|swift|kt|php|sql|yaml|yml|sh|bash|zsh|fish)$/
+			)
+		) {
+			toast.error('Unsupported file type. Drop a text or code file.');
 			return;
 		}
 
@@ -57,9 +71,23 @@
 					changes: { from: 0, to: view.state.doc.length, insert: text }
 				});
 			}
+			toast.success(`Loaded ${file.name}`);
 		} catch (err) {
 			console.error('Failed to read file:', err);
+			toast.error('Failed to read file');
 		}
+	}
+
+	function scrollToLine(lineNumber: number) {
+		if (!view) return;
+		const doc = view.state.doc;
+		const line = Math.min(Math.max(1, lineNumber), doc.lines);
+		const lineInfo = doc.line(line);
+		view.dispatch({
+			selection: { anchor: lineInfo.from },
+			effects: EditorView.scrollIntoView(lineInfo.from, { y: 'center' })
+		});
+		view.focus();
 	}
 
 	onMount(() => {
@@ -176,7 +204,7 @@
 		});
 	});
 
-	// Sync content from store to editor (for shareable URL loading)
+	// Sync content from store to editor (for shareable URL / session loading)
 	$effect(() => {
 		if (!view || !pane) return;
 		const storeContent = pane.content;
@@ -188,6 +216,13 @@
 		}
 	});
 
+	// Jump to line from search modal
+	$effect(() => {
+		const token = navigation.token;
+		if (token === 0 || !view) return;
+		if (navigation.paneIndex !== paneIndex) return;
+		scrollToLine(navigation.lineNumber);
+	});
 </script>
 
 <div
@@ -201,8 +236,12 @@
 	ondrop={handleDrop}
 >
 	{#if isDraggingOver}
-		<div class="absolute inset-0 bg-blue-500/10 flex items-center justify-center z-10 pointer-events-none">
-			<div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+		<div
+			class="absolute inset-0 bg-blue-500/10 flex items-center justify-center z-10 pointer-events-none"
+		>
+			<div
+				class="bg-white dark:bg-gray-800 rounded-lg shadow-lg px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300"
+			>
 				Drop file to load
 			</div>
 		</div>

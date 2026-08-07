@@ -47,8 +47,18 @@ class PaneStore {
 		}, 500);
 	}
 
-	addPane() {
-		this.panes.push(createPane());
+	addPane(content = '', manualLanguage: string | null = null) {
+		this.panes.push(createPane(content, manualLanguage));
+		this.scheduleSave();
+	}
+
+	/** Replace all panes at once (session import / shareable load). */
+	replaceAll(items: Array<{ content: string; manualLanguage?: string | null }>) {
+		const next =
+			items.length >= 2
+				? items.map((item) => createPane(item.content, item.manualLanguage ?? null))
+				: [createPane(), createPane()];
+		this.panes = next;
 		this.scheduleSave();
 	}
 

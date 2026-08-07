@@ -68,7 +68,7 @@ function buildDecorations(
 		...inlineDecos.map((d) => d.deco.range(d.from, d.to))
 	];
 
-	allDecos.sort((a, b) => a.from - b.from || a.startSide - b.startSide);
+	allDecos.sort((a, b) => a.from - b.from);
 
 	return Decoration.set(allDecos);
 }

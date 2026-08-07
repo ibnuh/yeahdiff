@@ -1,18 +1,33 @@
 <script lang="ts">
 	import { paneStore } from '../stores/panes.svelte.js';
 
+	function ensureTwoPanes() {
+		while (paneStore.panes.length < 2) {
+			paneStore.addPane();
+		}
+	}
+
+	function loadIntoPanes(a: string, b: string) {
+		ensureTwoPanes();
+		const first = paneStore.panes[0];
+		const second = paneStore.panes[1];
+		if (first) {
+			paneStore.updateContent(first.id, a);
+		}
+		if (second) {
+			paneStore.updateContent(second.id, b);
+		}
+	}
+
 	const examples = [
 		{
 			name: 'Simple Text Diff',
 			description: 'Compare two versions of a paragraph',
 			load: () => {
-				paneStore.updateContent(paneStore.panes[0].id, 'The quick brown fox jumps over the lazy dog. This is the original text that we want to compare.');
-				if (paneStore.panes[1]) {
-					paneStore.updateContent(paneStore.panes[1].id, 'The quick brown fox jumps over the lazy dog. This is the modified text with some changes added here.');
-				} else {
-					paneStore.addPane();
-					paneStore.updateContent(paneStore.panes[1].id, 'The quick brown fox jumps over the lazy dog. This is the modified text with some changes added here.');
-				}
+				loadIntoPanes(
+					'The quick brown fox jumps over the lazy dog. This is the original text that we want to compare.',
+					'The quick brown fox jumps over the lazy dog. This is the modified text with some changes added here.'
+				);
 			}
 		},
 		{
@@ -21,13 +36,7 @@
 			load: () => {
 				const json1 = JSON.stringify({ name: 'Alice', age: 30, city: 'New York' }, null, 2);
 				const json2 = JSON.stringify({ name: 'Alice', age: 31, city: 'Boston' }, null, 2);
-				paneStore.updateContent(paneStore.panes[0].id, json1);
-				if (paneStore.panes[1]) {
-					paneStore.updateContent(paneStore.panes[1].id, json2);
-				} else {
-					paneStore.addPane();
-					paneStore.updateContent(paneStore.panes[1].id, json2);
-				}
+				loadIntoPanes(json1, json2);
 			}
 		},
 		{
@@ -43,13 +52,7 @@
   }
   console.log(\`Hello, \${name}!\`);
 }`;
-				paneStore.updateContent(paneStore.panes[0].id, code1);
-				if (paneStore.panes[1]) {
-					paneStore.updateContent(paneStore.panes[1].id, code2);
-				} else {
-					paneStore.addPane();
-					paneStore.updateContent(paneStore.panes[1].id, code2);
-				}
+				loadIntoPanes(code1, code2);
 			}
 		}
 	];
@@ -62,7 +65,8 @@
 				Welcome to YeahDiff
 			</h2>
 			<p class="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-				Compare text and code across multiple panes. Add panes with Ctrl+N, paste or drag files, and see differences highlighted automatically.
+				Compare text and code across multiple panes. Add panes with Ctrl+N, paste or drag files, and see
+				differences highlighted automatically.
 			</p>
 		</div>
 
@@ -75,7 +79,9 @@
 						class="w-full text-left p-2.5 sm:p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
 						onclick={example.load}
 					>
-						<div class="text-sm sm:text-base font-medium text-gray-800 dark:text-gray-200">{example.name}</div>
+						<div class="text-sm sm:text-base font-medium text-gray-800 dark:text-gray-200">
+							{example.name}
+						</div>
 						<div class="text-xs sm:text-sm text-gray-500 dark:text-gray-500">{example.description}</div>
 					</button>
 				{/each}
@@ -85,9 +91,9 @@
 		<div class="text-xs sm:text-sm text-gray-500 dark:text-gray-500 space-y-1">
 			<p>Or get started by:</p>
 			<ul class="space-y-0.5 sm:space-y-1">
-				<li>• Pasting text directly into any pane</li>
-				<li>• Dragging a file onto any pane</li>
-				<li>• Using Ctrl+N to add more panes</li>
+				<li>Pasting text directly into any pane</li>
+				<li>Dragging a file onto any pane</li>
+				<li>Using Ctrl+N to add more panes</li>
 			</ul>
 		</div>
 	</div>

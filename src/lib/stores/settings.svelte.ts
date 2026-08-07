@@ -10,11 +10,12 @@ class Settings {
 	diffMode = $state<DiffMode>('base');
 	baseIndex = $state(0);
 	mobileLayout = $state<'stack' | 'compare'>('stack');
+	/** Tracks system prefers-color-scheme so isDark stays reactive. */
+	private systemPrefersDark = $state(false);
 
 	isDark = $derived.by(() => {
 		if (this.theme === 'system') {
-			if (typeof window === 'undefined') return false;
-			return window.matchMedia('(prefers-color-scheme: dark)').matches;
+			return this.systemPrefersDark;
 		}
 		return this.theme === 'dark';
 	});
@@ -27,7 +28,16 @@ class Settings {
 			this.wordWrap = loadFromStorage('yeahdiff-wordWrap', false);
 			this.alignedDiff = loadFromStorage('yeahdiff-alignedDiff', false);
 			this.diffMode = loadFromStorage('yeahdiff-diffMode', 'base' as DiffMode);
-			this.mobileLayout = loadFromStorage('yeahdiff-mobileLayout', 'stack' as 'stack' | 'compare');
+			this.mobileLayout = loadFromStorage(
+				'yeahdiff-mobileLayout',
+				'stack' as 'stack' | 'compare'
+			);
+
+			const mq = window.matchMedia('(prefers-color-scheme: dark)');
+			this.systemPrefersDark = mq.matches;
+			mq.addEventListener('change', (e) => {
+				this.systemPrefersDark = e.matches;
+			});
 		}
 	}
 
@@ -68,6 +78,21 @@ class Settings {
 	toggleMobileLayout() {
 		this.mobileLayout = this.mobileLayout === 'stack' ? 'compare' : 'stack';
 		saveToStorage('yeahdiff-mobileLayout', this.mobileLayout);
+	}
+
+	setAlignedDiff(value: boolean) {
+		this.alignedDiff = value;
+		saveToStorage('yeahdiff-alignedDiff', value);
+	}
+
+	setSyncScroll(value: boolean) {
+		this.syncScroll = value;
+		saveToStorage('yeahdiff-syncScroll', value);
+	}
+
+	setWordWrap(value: boolean) {
+		this.wordWrap = value;
+		saveToStorage('yeahdiff-wordWrap', value);
 	}
 }
 
