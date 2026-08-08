@@ -7,3 +7,6 @@ build
 !.env.example
 dist
 *.local
+.wrangler
+worker-configuration.d.ts
+.dev.vars

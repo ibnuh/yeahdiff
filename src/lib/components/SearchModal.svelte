@@ -150,6 +150,8 @@
 		<div
 			class="bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 w-full max-w-2xl pointer-events-auto"
 			bind:this={panelEl}
+			role="dialog"
+			tabindex="-1"
 			onkeydown={handleKeydown}
 		>
 			<div class="p-4 border-b border-gray-200 dark:border-gray-700">

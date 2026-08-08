@@ -254,6 +254,8 @@
 	class:ring-blue-500={isDraggingOver}
 	class:ring-inset={isDraggingOver}
 	bind:this={containerEl}
+	role="application"
+	aria-label="Editor pane. Drop a text file to load."
 	ondragover={handleDragOver}
 	ondragleave={handleDragLeave}
 	ondrop={handleDrop}

@@ -1,0 +1,14 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "yeahdiff",
+	"compatibility_date": "2026-08-08",
+	"observability": {
+		"enabled": true
+	},
+	// Static SPA from @sveltejs/adapter-static (output: ./build)
+	// Do not use the SvelteKit Cloudflare adapter path; this app is client-only.
+	"assets": {
+		"directory": "./build",
+		"not_found_handling": "single-page-application"
+	}
+}
