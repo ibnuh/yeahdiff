@@ -267,6 +267,43 @@ body {
 	background: var(--app-hover);
 }
 
+.yd-unified-word-added {
+	background-color: var(--color-diff-added-word-light);
+	border-radius: 2px;
+}
+
+.yd-unified-word-removed {
+	background-color: var(--color-diff-removed-word-light);
+	border-radius: 2px;
+}
+
+.dark .yd-unified-word-added {
+	background-color: var(--color-diff-added-word-dark);
+}
+
+.dark .yd-unified-word-removed {
+	background-color: var(--color-diff-removed-word-dark);
+}
+
+.yd-unified-line.yd-unified-highlight {
+	outline: 2px solid #3b82f6;
+	outline-offset: -2px;
+	background-image: linear-gradient(
+		to right,
+		rgba(59, 130, 246, 0.18),
+		rgba(59, 130, 246, 0.05)
+	);
+}
+
+.dark .yd-unified-line.yd-unified-highlight {
+	outline-color: #60a5fa;
+	background-image: linear-gradient(
+		to right,
+		rgba(96, 165, 250, 0.22),
+		rgba(96, 165, 250, 0.06)
+	);
+}
+
 .cm-diff-padding {
 	background-color: #f1f3f5;
 	border-top: 1px dashed #ced4da;

@@ -3,6 +3,7 @@
 	import { paneStore } from '../stores/panes.svelte.js';
 	import { settings } from '../stores/settings.svelte.js';
 	import { navigation } from '../stores/navigation.svelte.js';
+	import { trapFocus, restoreFocus } from '../a11y/focus-trap.js';
 
 	let isOpen = $state(false);
 	let searchQuery = $state('');
@@ -11,8 +12,12 @@
 	>([]);
 	let currentResultIndex = $state(-1);
 	let inputEl: HTMLInputElement | undefined = $state();
+	let panelEl: HTMLDivElement | undefined = $state();
+	let previouslyFocused: Element | null = null;
+	let releaseTrap: (() => void) | null = null;
 
 	export function open() {
+		previouslyFocused = document.activeElement;
 		isOpen = true;
 		searchQuery = '';
 		searchResults = [];
@@ -25,6 +30,10 @@
 		searchQuery = '';
 		searchResults = [];
 		currentResultIndex = -1;
+		releaseTrap?.();
+		releaseTrap = null;
+		restoreFocus(previouslyFocused);
+		previouslyFocused = null;
 	}
 
 	function performSearch() {
@@ -110,6 +119,17 @@
 		void paneStore.panes.map((p) => p.content).join('\0');
 		performSearch();
 	});
+
+	$effect(() => {
+		if (!isOpen || !panelEl) {
+			return;
+		}
+		releaseTrap = trapFocus(panelEl);
+		return () => {
+			releaseTrap?.();
+			releaseTrap = null;
+		};
+	});
 </script>
 
 {#if isOpen}
@@ -118,6 +138,7 @@
 		class="fixed inset-0 z-50 bg-black/50 cursor-default"
 		onclick={close}
 		aria-label="Close search"
+		tabindex="-1"
 	></button>
 	<div
 		class="fixed inset-0 z-50 flex items-start justify-center p-4 pt-20 pointer-events-none"
@@ -128,6 +149,7 @@
 	>
 		<div
 			class="bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 w-full max-w-2xl pointer-events-auto"
+			bind:this={panelEl}
 			onkeydown={handleKeydown}
 		>
 			<div class="p-4 border-b border-gray-200 dark:border-gray-700">

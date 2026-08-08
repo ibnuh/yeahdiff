@@ -16,7 +16,7 @@
 				{isBase(index) ? 'ring-2 ring-blue-300 dark:ring-blue-700' : ''}"
 			onclick={() => settings.setBaseIndex(index)}
 		>
-			<span class="font-medium">Pane {index + 1}</span>
+			<span class="font-medium truncate max-w-[8rem]">{pane.label?.trim() || `Pane ${index + 1}`}</span>
 			{#if isBase(index)}
 				<span class="text-xs opacity-80">(base)</span>
 			{/if}

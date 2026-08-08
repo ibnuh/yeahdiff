@@ -5,6 +5,7 @@ import {
 	buildUnifiedRows,
 	type DiffStats
 } from '../diff/engine.js';
+import { computePairwiseDiffsAsync } from '../diff/worker-client.js';
 import type {
 	DiffResult,
 	LineDiff,
@@ -22,33 +23,130 @@ class DiffStore {
 	results = $state<Map<number, DiffResult>>(new Map());
 	totalLines = $state(0);
 	unifiedRows = $state<UnifiedRow[]>([]);
+	/** Keys of expanded unified separators (from unifiedSeparatorKey). */
+	unifiedExpandedKeys = $state<Set<string>>(new Set());
 	private timeout: ReturnType<typeof setTimeout> | null = null;
 
 	scheduleRecompute(
 		texts: string[],
 		mode: typeof settings.diffMode,
 		aligned: boolean,
-		baseIdx: number
+		baseIdx: number,
+		diffOptions?: { ignoreWhitespace?: boolean; ignoreCase?: boolean }
 	) {
 		if (this.timeout) {
 			clearTimeout(this.timeout);
 		}
 		this.timeout = setTimeout(() => {
-			const hasContent = texts.some((t) => t.length > 0);
-			this.totalLines = texts.reduce((sum, text) => sum + text.split('\n').length, 0);
-			if (hasContent) {
-				this.results = computePairwiseDiffs(texts, mode, baseIdx, aligned);
-			} else {
-				this.results = new Map();
-			}
-
-			const pair = this.resolvePrimaryPair(texts, mode, baseIdx);
-			if (pair && (pair.textA.length > 0 || pair.textB.length > 0)) {
-				this.unifiedRows = buildUnifiedRows(pair.textA, pair.textB, 3);
-			} else {
-				this.unifiedRows = [];
-			}
+			void this.runRecompute(texts, mode, aligned, baseIdx, diffOptions);
 		}, 300);
+	}
+
+	private recomputeGen = 0;
+
+	private async runRecompute(
+		texts: string[],
+		mode: typeof settings.diffMode,
+		aligned: boolean,
+		baseIdx: number,
+		diffOptions?: { ignoreWhitespace?: boolean; ignoreCase?: boolean }
+	) {
+		const gen = ++this.recomputeGen;
+		const hasContent = texts.some((t) => t.length > 0);
+		const totalLines = texts.reduce((sum, text) => sum + text.split('\n').length, 0);
+		this.totalLines = totalLines;
+
+		let results: Map<number, DiffResult>;
+		if (hasContent) {
+			if (totalLines > 2000) {
+				results = await computePairwiseDiffsAsync(texts, mode, baseIdx, aligned, diffOptions);
+			} else {
+				results = computePairwiseDiffs(texts, mode, baseIdx, aligned, diffOptions);
+			}
+		} else {
+			results = new Map();
+		}
+
+		if (gen !== this.recomputeGen) {
+			return;
+		}
+		this.results = results;
+
+		const pair = this.resolvePrimaryPair(texts, mode, baseIdx);
+		if (pair && (pair.textA.length > 0 || pair.textB.length > 0)) {
+			this.unifiedRows = buildUnifiedRows(
+				pair.textA,
+				pair.textB,
+				3,
+				this.unifiedExpandedKeys,
+				diffOptions
+			);
+		} else {
+			this.unifiedRows = [];
+		}
+	}
+
+	/**
+	 * Force immediate unified recompute (e.g. after expand / pair change).
+	 * Uses current pane contents and settings.
+	 */
+	recomputeUnifiedNow() {
+		const texts = paneStore.panes.map((p) => p.content);
+		const baseIdx = Math.min(settings.baseIndex, Math.max(0, paneStore.count - 1));
+		const pair = this.resolvePrimaryPair(texts, settings.diffMode, baseIdx);
+		const diffOptions = {
+			ignoreWhitespace: settings.ignoreWhitespace,
+			ignoreCase: settings.ignoreCase
+		};
+		if (pair && (pair.textA.length > 0 || pair.textB.length > 0)) {
+			this.unifiedRows = buildUnifiedRows(
+				pair.textA,
+				pair.textB,
+				3,
+				this.unifiedExpandedKeys,
+				diffOptions
+			);
+		} else {
+			this.unifiedRows = [];
+		}
+	}
+
+	expandUnifiedSeparator(key: string) {
+		if (this.unifiedExpandedKeys.has(key)) {
+			return;
+		}
+		const next = new Set(this.unifiedExpandedKeys);
+		next.add(key);
+		this.unifiedExpandedKeys = next;
+		this.recomputeUnifiedNow();
+	}
+
+	expandAllUnifiedSeparators() {
+		const keys = new Set<string>();
+		for (const row of this.unifiedRows) {
+			if (row.kind === 'separator') {
+				keys.add(
+					`${row.expandFromA}:${row.expandToA}:${row.expandFromB}:${row.expandToB}`
+				);
+			}
+		}
+		if (keys.size === 0 && this.unifiedExpandedKeys.size === 0) {
+			return;
+		}
+		const next = new Set(this.unifiedExpandedKeys);
+		for (const k of keys) {
+			next.add(k);
+		}
+		this.unifiedExpandedKeys = next;
+		this.recomputeUnifiedNow();
+	}
+
+	clearUnifiedExpanded() {
+		if (this.unifiedExpandedKeys.size === 0) {
+			return;
+		}
+		this.unifiedExpandedKeys = new Set();
+		this.recomputeUnifiedNow();
 	}
 
 	resolvePrimaryPair(
@@ -58,6 +156,26 @@ class DiffStore {
 	): PrimaryPairTexts | null {
 		if (texts.length < 2) {
 			return null;
+		}
+
+		// Explicit pair from settings (pair picker) when both indices are valid and distinct
+		const ua = settings.unifiedIndexA;
+		const ub = settings.unifiedIndexB;
+		if (
+			ua !== null &&
+			ub !== null &&
+			ua !== ub &&
+			ua >= 0 &&
+			ub >= 0 &&
+			ua < texts.length &&
+			ub < texts.length
+		) {
+			return {
+				textA: texts[ua] ?? '',
+				textB: texts[ub] ?? '',
+				indexA: ua,
+				indexB: ub
+			};
 		}
 
 		if (mode === 'base') {
@@ -106,8 +224,7 @@ class DiffStore {
 
 	/**
 	 * Primary pair for unified view / pair-focused UX.
-	 * base mode: baseIndex as A, first other pane as B;
-	 * adjacent: baseIndex and baseIndex+1 (clamped).
+	 * Prefer settings.unifiedIndexA/B when set; else base/adjacent resolve.
 	 */
 	getPrimaryPairTexts(): PrimaryPairTexts | null {
 		const texts = paneStore.panes.map((p) => p.content);
@@ -155,13 +272,21 @@ $effect.root(() => {
 		const mode = settings.diffMode;
 		const aligned = settings.alignedDiff;
 		const baseIdx = Math.min(settings.baseIndex, Math.max(0, paneStore.count - 1));
+		const ignoreWhitespace = settings.ignoreWhitespace;
+		const ignoreCase = settings.ignoreCase;
 
 		if (baseIdx !== settings.baseIndex) {
 			settings.setBaseIndex(baseIdx);
 		}
 
 		void settings.viewMode;
+		// Recompute when explicit unified pair changes
+		void settings.unifiedIndexA;
+		void settings.unifiedIndexB;
 
-		diffStore.scheduleRecompute(texts, mode, aligned, baseIdx);
+		diffStore.scheduleRecompute(texts, mode, aligned, baseIdx, {
+			ignoreWhitespace,
+			ignoreCase
+		});
 	});
 });

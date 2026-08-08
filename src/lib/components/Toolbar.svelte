@@ -6,6 +6,7 @@
 	import ThemeSelector from './ThemeSelector.svelte';
 	import { copyShareableUrl } from '../shareable.js';
 	import { downloadSession, importSession } from '../session.js';
+	import { copyUnifiedPatch, downloadUnifiedPatch } from '../export-patch.js';
 	import { toast } from '../stores/toast.svelte.js';
 
 	interface Props {
@@ -18,6 +19,39 @@
 	let changeCursor = $state(-1);
 
 	function jumpChange(direction: 1 | -1) {
+		if (settings.viewMode === 'unified') {
+			const changeRows: number[] = [];
+			for (let i = 0; i < diffStore.unifiedRows.length; i++) {
+				const row = diffStore.unifiedRows[i];
+				if (row.kind === 'added' || row.kind === 'removed' || row.kind === 'modified') {
+					changeRows.push(i);
+				}
+			}
+			if (changeRows.length === 0) {
+				toast.info('No changes to jump to');
+				return;
+			}
+			if (changeCursor < 0 || changeCursor >= changeRows.length) {
+				changeCursor = direction > 0 ? 0 : changeRows.length - 1;
+			} else {
+				changeCursor = (changeCursor + direction + changeRows.length) % changeRows.length;
+			}
+			const rowIndex = changeRows[changeCursor];
+			const row = diffStore.unifiedRows[rowIndex];
+			if (row.kind === 'separator') {
+				return;
+			}
+			const pair = diffStore.getPrimaryPair();
+			const paneIndex = pair
+				? row.kind === 'added'
+					? pair.indexB
+					: pair.indexA
+				: 0;
+			const lineNumber = row.lineNumberB ?? row.lineNumberA ?? 1;
+			navigation.jumpToUnified(paneIndex, lineNumber, rowIndex);
+			return;
+		}
+
 		const { paneIndex, lines } = diffStore.getNavigationAnchors();
 		if (lines.length === 0) {
 			toast.info('No changes to jump to');
@@ -54,6 +88,16 @@
 		}
 	}
 
+	function handleMenuKeydown(e: KeyboardEvent) {
+		if (!mobileMenuOpen) {
+			return;
+		}
+		if (e.key === 'Escape') {
+			e.preventDefault();
+			closeMenu();
+		}
+	}
+
 	async function handleShare() {
 		const result = await copyShareableUrl();
 		if (!result.ok) {
@@ -71,6 +115,58 @@
 		downloadSession();
 		toast.success('Session exported');
 		closeMenu();
+	}
+
+	function getPrimaryPairForPatch() {
+		return diffStore.getPrimaryPair() ?? diffStore.getPrimaryPairTexts();
+	}
+
+	function paneFileName(index: number, fallback: string): string {
+		const pane = paneStore.panes[index];
+		const label = pane?.label?.trim();
+		if (label) {
+			return label;
+		}
+		return fallback;
+	}
+
+	function handleDownloadPatch() {
+		const pair = getPrimaryPairForPatch();
+		if (!pair) {
+			toast.error('No panes available for patch');
+			return;
+		}
+		try {
+			downloadUnifiedPatch(
+				pair.textA,
+				pair.textB,
+				paneFileName(pair.indexA, 'a'),
+				paneFileName(pair.indexB, 'b')
+			);
+			toast.success('Patch downloaded');
+			closeMenu();
+		} catch {
+			toast.error('Failed to build patch');
+		}
+	}
+
+	async function handleCopyPatch() {
+		const pair = getPrimaryPairForPatch();
+		if (!pair) {
+			toast.error('No panes available for patch');
+			return;
+		}
+		const ok = await copyUnifiedPatch(
+			pair.textA,
+			pair.textB,
+			paneFileName(pair.indexA, 'a'),
+			paneFileName(pair.indexB, 'b')
+		);
+		if (ok) {
+			toast.success('Patch copied');
+		} else {
+			toast.error('Could not copy patch');
+		}
 	}
 
 	function handleImportClick() {
@@ -92,6 +188,8 @@
 		target.value = '';
 	}
 </script>
+
+<svelte:window onkeydown={handleMenuKeydown} />
 
 <input
 	type="file"
@@ -255,6 +353,34 @@
 
 		<button
 			type="button"
+			class="hidden lg:flex px-2 sm:px-3 py-1.5 text-xs sm:text-sm rounded-md transition-colors items-center gap-1
+			{settings.ignoreWhitespace
+				? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+				: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}
+			hover:opacity-80"
+			onclick={() => settings.toggleIgnoreWhitespace()}
+			title="Ignore whitespace differences"
+			aria-pressed={settings.ignoreWhitespace}
+		>
+			WS
+		</button>
+
+		<button
+			type="button"
+			class="hidden lg:flex px-2 sm:px-3 py-1.5 text-xs sm:text-sm rounded-md transition-colors items-center gap-1
+			{settings.ignoreCase
+				? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+				: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}
+			hover:opacity-80"
+			onclick={() => settings.toggleIgnoreCase()}
+			title="Ignore case differences"
+			aria-pressed={settings.ignoreCase}
+		>
+			Aa
+		</button>
+
+		<button
+			type="button"
 			class="hidden lg:flex px-2 py-1.5 text-xs sm:text-sm rounded-md transition-colors bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
 			onclick={() => jumpChange(-1)}
 			title="Previous change (Alt+↑)"
@@ -367,6 +493,36 @@
 				/>
 			</svg>
 			<span class="hidden 2xl:inline">Share</span>
+		</button>
+
+		<button
+			type="button"
+			class="hidden lg:flex px-2 sm:px-3 py-1.5 text-xs sm:text-sm rounded-md transition-colors bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 items-center gap-1.5"
+			onclick={handleDownloadPatch}
+			title="Download unified patch for primary pair"
+		>
+			<svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"
+				><path
+					fill-rule="evenodd"
+					d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
+					clip-rule="evenodd"
+				/></svg
+			>
+			<span class="hidden 2xl:inline">Patch</span>
+		</button>
+
+		<button
+			type="button"
+			class="hidden xl:flex px-2 sm:px-3 py-1.5 text-xs sm:text-sm rounded-md transition-colors bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 items-center gap-1.5"
+			onclick={handleCopyPatch}
+			title="Copy unified patch for primary pair"
+		>
+			<svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"
+				><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" /><path
+					d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"
+				/></svg
+			>
+			<span class="hidden 2xl:inline">Copy Patch</span>
 		</button>
 
 		<button
@@ -559,6 +715,32 @@
 
 			<button
 				class="w-full px-3 py-3 rounded-lg transition-colors flex items-center justify-between min-h-[48px]
+					{settings.ignoreWhitespace
+						? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+						: 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'}"
+				onclick={() => {
+					settings.toggleIgnoreWhitespace();
+					closeMenu();
+				}}
+			>
+				<span>Ignore whitespace</span>
+			</button>
+
+			<button
+				class="w-full px-3 py-3 rounded-lg transition-colors flex items-center justify-between min-h-[48px]
+					{settings.ignoreCase
+						? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+						: 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'}"
+				onclick={() => {
+					settings.toggleIgnoreCase();
+					closeMenu();
+				}}
+			>
+				<span>Ignore case</span>
+			</button>
+
+			<button
+				class="w-full px-3 py-3 rounded-lg transition-colors flex items-center justify-between min-h-[48px]
 					{settings.syncScroll
 					? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
 					: 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'}"
@@ -631,6 +813,35 @@
 					/></svg
 				>
 				Share Link
+			</button>
+
+			<button
+				class="w-full px-3 py-3 rounded-lg transition-colors flex items-center gap-2 min-h-[48px] bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+				onclick={handleDownloadPatch}
+			>
+				<svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"
+					><path
+						fill-rule="evenodd"
+						d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
+						clip-rule="evenodd"
+					/></svg
+				>
+				Download Patch
+			</button>
+
+			<button
+				class="w-full px-3 py-3 rounded-lg transition-colors flex items-center gap-2 min-h-[48px] bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+				onclick={async () => {
+					await handleCopyPatch();
+					closeMenu();
+				}}
+			>
+				<svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"
+					><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" /><path
+						d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"
+					/></svg
+				>
+				Copy Patch
 			</button>
 
 			<button

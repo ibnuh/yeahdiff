@@ -18,6 +18,38 @@
 	let changeCursor = -1;
 
 	function jumpChange(direction: 1 | -1) {
+		if (settings.viewMode === 'unified') {
+			const changeRows: number[] = [];
+			for (let i = 0; i < diffStore.unifiedRows.length; i++) {
+				const row = diffStore.unifiedRows[i];
+				if (row.kind === 'added' || row.kind === 'removed' || row.kind === 'modified') {
+					changeRows.push(i);
+				}
+			}
+			if (changeRows.length === 0) {
+				return;
+			}
+			if (changeCursor < 0 || changeCursor >= changeRows.length) {
+				changeCursor = direction > 0 ? 0 : changeRows.length - 1;
+			} else {
+				changeCursor = (changeCursor + direction + changeRows.length) % changeRows.length;
+			}
+			const rowIndex = changeRows[changeCursor];
+			const row = diffStore.unifiedRows[rowIndex];
+			if (row.kind === 'separator') {
+				return;
+			}
+			const pair = diffStore.getPrimaryPair();
+			const paneIndex = pair
+				? row.kind === 'added'
+					? pair.indexB
+					: pair.indexA
+				: 0;
+			const lineNumber = row.lineNumberB ?? row.lineNumberA ?? 1;
+			navigation.jumpToUnified(paneIndex, lineNumber, rowIndex);
+			return;
+		}
+
 		const { paneIndex, lines } = diffStore.getNavigationAnchors();
 		if (lines.length === 0) {
 			return;

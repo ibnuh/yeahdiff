@@ -90,11 +90,18 @@ export interface UnifiedHunkSeparator {
 
 export type UnifiedRow = UnifiedDiffLine | UnifiedHunkSeparator;
 
-/** Options shared by hunk / unified builders. */
+/** Options shared by diff / hunk / unified builders. Defaults are all false / unset. */
 export interface DiffViewOptions {
 	/** Context lines around each change region (default 3 when collapsing). */
 	contextLines?: number;
+	/** Ignore leading/trailing whitespace when comparing lines (jsdiff). */
+	ignoreWhitespace?: boolean;
+	/** Treat upper/lowercase as equal when comparing (jsdiff). */
+	ignoreCase?: boolean;
 }
+
+/** Compute options without view-specific fields. */
+export type DiffComputeOptions = Pick<DiffViewOptions, 'ignoreWhitespace' | 'ignoreCase'>;
 
 /** Primary pair of texts used for unified view / pair-focused UX. */
 export interface PrimaryPairTexts {

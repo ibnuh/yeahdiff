@@ -1,29 +1,35 @@
 import { paneStore } from './stores/panes.svelte.js';
+import {
+	base64UrlToBytes,
+	bytesToBase64Url,
+	encodePanesToHash,
+	type ShareablePane
+} from './shareable-codec.js';
+
+export type { ShareablePane } from './shareable-codec.js';
+export { encodePanesToHash } from './shareable-codec.js';
 
 const MAX_URL_LENGTH = 8000; // Browser limit is typically around 8000-10000 chars
+const COMPRESSED_PREFIX = 'v2.';
 
-function bytesToBase64Url(data: Uint8Array): string {
-	// Chunk to avoid call-stack limits from String.fromCharCode(...largeArray)
-	const chunkSize = 0x8000;
-	let binary = '';
-	for (let i = 0; i < data.length; i += chunkSize) {
-		const chunk = data.subarray(i, i + chunkSize);
-		binary += String.fromCharCode(...chunk);
-	}
-	return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+function supportsCompression(): boolean {
+	return typeof CompressionStream !== 'undefined' && typeof DecompressionStream !== 'undefined';
 }
 
-function base64UrlToBytes(hash: string): Uint8Array {
-	let base64 = hash.replace(/-/g, '+').replace(/_/g, '/');
-	while (base64.length % 4) {
-		base64 += '=';
-	}
-	const binary = atob(base64);
-	const bytes = new Uint8Array(binary.length);
-	for (let i = 0; i < binary.length; i++) {
-		bytes[i] = binary.charCodeAt(i);
-	}
-	return bytes;
+async function gzipCompress(data: Uint8Array): Promise<Uint8Array> {
+	const copy = new Uint8Array(data.byteLength);
+	copy.set(data);
+	const stream = new Blob([copy]).stream().pipeThrough(new CompressionStream('gzip'));
+	const buffer = await new Response(stream).arrayBuffer();
+	return new Uint8Array(buffer);
+}
+
+async function gzipDecompress(data: Uint8Array): Promise<Uint8Array> {
+	const copy = new Uint8Array(data.byteLength);
+	copy.set(data);
+	const stream = new Blob([copy]).stream().pipeThrough(new DecompressionStream('gzip'));
+	const buffer = await new Response(stream).arrayBuffer();
+	return new Uint8Array(buffer);
 }
 
 export type ShareEncodeResult = {
@@ -33,34 +39,73 @@ export type ShareEncodeResult = {
 	byteLength: number;
 };
 
-export function encodeStateToHash(): ShareEncodeResult {
-	const panes = paneStore.panes.map((p) => ({
+export async function encodeStateToHash(): Promise<ShareEncodeResult> {
+	const panes: ShareablePane[] = paneStore.panes.map((p) => ({
 		content: p.content,
-		lang: p.manualLanguage || p.detectedLanguage
+		lang: p.manualLanguage || p.detectedLanguage,
+		label: p.label ?? null
 	}));
 
-	const state = JSON.stringify(panes);
+	const state = JSON.stringify(
+		panes.map((p) => {
+			const entry: { content: string; lang?: string | null; label?: string | null } = {
+				content: p.content
+			};
+			if (p.lang != null && p.lang !== '') {
+				entry.lang = p.lang;
+			}
+			if (p.label != null) {
+				entry.label = p.label;
+			}
+			return entry;
+		})
+	);
 	const encoder = new TextEncoder();
 	const data = encoder.encode(state);
-	const hash = bytesToBase64Url(data);
+
+	let payloadLength = data.length;
+	let hash = encodePanesToHash(panes);
+
+	if (supportsCompression()) {
+		try {
+			const compressed = await gzipCompress(data);
+			// Prefer compressed when it shrinks the payload
+			if (compressed.length < data.length) {
+				payloadLength = compressed.length;
+				hash = COMPRESSED_PREFIX + bytesToBase64Url(compressed);
+			}
+		} catch {
+			// Fall back to uncompressed payload
+		}
+	}
+
 	const url = `${window.location.origin}${window.location.pathname}#${hash}`;
 	const tooLong = url.length > MAX_URL_LENGTH;
 
-	if (state.length > 5000) {
-		console.warn('Content is large, URL may exceed browser limits');
-	}
 	if (tooLong) {
 		console.error('URL too long, share may not work properly');
 	}
 
-	return { hash, url, tooLong, byteLength: data.length };
+	return { hash, url, tooLong, byteLength: payloadLength };
 }
 
-export function decodeStateFromHash(
+export async function decodeStateFromHash(
 	hash: string
-): Array<{ content: string; lang?: string }> | null {
+): Promise<Array<{ content: string; lang?: string; label?: string | null }> | null> {
+	if (!hash) {
+		return null;
+	}
 	try {
-		const bytes = base64UrlToBytes(hash);
+		let bytes: Uint8Array;
+		if (hash.startsWith(COMPRESSED_PREFIX)) {
+			const raw = base64UrlToBytes(hash.slice(COMPRESSED_PREFIX.length));
+			if (!supportsCompression()) {
+				return null;
+			}
+			bytes = await gzipDecompress(raw);
+		} else {
+			bytes = base64UrlToBytes(hash);
+		}
 		const decoder = new TextDecoder();
 		const state = decoder.decode(bytes);
 		return JSON.parse(state);
@@ -70,7 +115,7 @@ export function decodeStateFromHash(
 }
 
 export async function copyShareableUrl(): Promise<{ ok: boolean; tooLong: boolean }> {
-	const { url, tooLong } = encodeStateToHash();
+	const { url, tooLong } = await encodeStateToHash();
 	try {
 		await navigator.clipboard.writeText(url);
 		return { ok: true, tooLong };
@@ -81,9 +126,11 @@ export async function copyShareableUrl(): Promise<{ ok: boolean; tooLong: boolea
 
 export async function loadFromHash(): Promise<boolean> {
 	const hash = window.location.hash.slice(1);
-	if (!hash) return false;
+	if (!hash) {
+		return false;
+	}
 
-	const state = decodeStateFromHash(hash);
+	const state = await decodeStateFromHash(hash);
 	if (!state || state.length === 0) {
 		return false;
 	}
@@ -91,7 +138,8 @@ export async function loadFromHash(): Promise<boolean> {
 	paneStore.replaceAll(
 		state.map((paneData) => ({
 			content: paneData.content,
-			manualLanguage: paneData.lang ?? null
+			manualLanguage: paneData.lang ?? null,
+			label: paneData.label ?? null
 		}))
 	);
 

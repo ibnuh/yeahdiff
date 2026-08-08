@@ -1,7 +1,12 @@
 <script lang="ts">
 	import { slide } from 'svelte/transition';
+	import { trapFocus, restoreFocus } from '../a11y/focus-trap.js';
 
 	let isOpen = $state(false);
+	let panelEl: HTMLDivElement | undefined = $state();
+	let closeBtnEl: HTMLButtonElement | undefined = $state();
+	let previouslyFocused: Element | null = null;
+	let releaseTrap: (() => void) | null = null;
 
 	const shortcuts = [
 		{ key: 'Ctrl/⌘ + N', action: 'Add new pane' },
@@ -13,11 +18,17 @@
 	];
 
 	export function open() {
+		previouslyFocused = document.activeElement;
 		isOpen = true;
+		queueMicrotask(() => closeBtnEl?.focus());
 	}
 
 	export function close() {
 		isOpen = false;
+		releaseTrap?.();
+		releaseTrap = null;
+		restoreFocus(previouslyFocused);
+		previouslyFocused = null;
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
@@ -27,6 +38,17 @@
 			close();
 		}
 	}
+
+	$effect(() => {
+		if (!isOpen || !panelEl) {
+			return;
+		}
+		releaseTrap = trapFocus(panelEl);
+		return () => {
+			releaseTrap?.();
+			releaseTrap = null;
+		};
+	});
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -37,6 +59,7 @@
 		class="fixed inset-0 z-50 bg-black/50 cursor-default"
 		onclick={close}
 		aria-label="Close keyboard shortcuts"
+		tabindex="-1"
 	></button>
 	<div
 		class="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
@@ -47,6 +70,7 @@
 	>
 		<div
 			class="bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 w-full max-w-md pointer-events-auto"
+			bind:this={panelEl}
 		>
 			<div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
 				<h2 id="shortcuts-title" class="text-lg font-semibold text-gray-800 dark:text-gray-100">
@@ -57,6 +81,7 @@
 					class="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
 					onclick={close}
 					aria-label="Close"
+					bind:this={closeBtnEl}
 				>
 					<svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
 						<path

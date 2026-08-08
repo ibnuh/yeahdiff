@@ -17,6 +17,16 @@ class Settings {
 	viewMode = $state<ViewMode>('split');
 	/** How change lines are painted in editors. */
 	changeStyle = $state<ChangeStyle>('both');
+	/** Ignore leading/trailing whitespace when computing diffs. */
+	ignoreWhitespace = $state(false);
+	/** Treat upper/lowercase as equal when computing diffs. */
+	ignoreCase = $state(false);
+	/**
+	 * Optional explicit pair for unified view (pane indices).
+	 * null = auto from resolvePrimaryPair (base/adjacent).
+	 */
+	unifiedIndexA = $state<number | null>(null);
+	unifiedIndexB = $state<number | null>(null);
 	/** Tracks system prefers-color-scheme so isDark stays reactive. */
 	private systemPrefersDark = $state(false);
 
@@ -41,6 +51,8 @@ class Settings {
 			);
 			this.viewMode = loadFromStorage('yeahdiff-viewMode', 'split' as ViewMode);
 			this.changeStyle = loadFromStorage('yeahdiff-changeStyle', 'both' as ChangeStyle);
+			this.ignoreWhitespace = loadFromStorage('yeahdiff-ignoreWhitespace', false);
+			this.ignoreCase = loadFromStorage('yeahdiff-ignoreCase', false);
 
 			const mq = window.matchMedia('(prefers-color-scheme: dark)');
 			this.systemPrefersDark = mq.matches;
@@ -123,6 +135,37 @@ class Settings {
 		const idx = order.indexOf(this.changeStyle);
 		const next = order[(idx + 1) % order.length];
 		this.setChangeStyle(next);
+	}
+
+	setUnifiedPair(indexA: number | null, indexB: number | null) {
+		this.unifiedIndexA = indexA;
+		this.unifiedIndexB = indexB;
+	}
+
+	setUnifiedIndexA(index: number | null) {
+		this.unifiedIndexA = index;
+	}
+
+	setUnifiedIndexB(index: number | null) {
+		this.unifiedIndexB = index;
+	}
+
+	setIgnoreWhitespace(value: boolean) {
+		this.ignoreWhitespace = value;
+		saveToStorage('yeahdiff-ignoreWhitespace', value);
+	}
+
+	toggleIgnoreWhitespace() {
+		this.setIgnoreWhitespace(!this.ignoreWhitespace);
+	}
+
+	setIgnoreCase(value: boolean) {
+		this.ignoreCase = value;
+		saveToStorage('yeahdiff-ignoreCase', value);
+	}
+
+	toggleIgnoreCase() {
+		this.setIgnoreCase(!this.ignoreCase);
 	}
 }
 

@@ -8,30 +8,54 @@ import type {
 	DiffHunk,
 	DiffPairChanges,
 	DiffViewOptions,
+	DiffComputeOptions,
 	UnifiedDiffLine,
 	UnifiedRow,
 	AlignedPairResult
 } from './types.js';
 import { shouldSkipDiff } from '../large-file-utils.js';
 
-export type { AlignedPairResult, DiffPairChanges, DiffViewOptions };
+export type { AlignedPairResult, DiffPairChanges, DiffViewOptions, DiffComputeOptions };
 
 const DEFAULT_CONTEXT_LINES = 3;
 
-function computeWordDiffForLine(lineA: string, lineB: string): WordDiff[] {
-	const result = diffWords(lineA, lineB);
+/** Build jsdiff line options; defaults keep previous behavior (both false). */
+function toLineDiffOptions(options?: DiffComputeOptions) {
+	return {
+		ignoreWhitespace: options?.ignoreWhitespace ?? false,
+		// Supported at runtime by Diff.equals even for lines
+		ignoreCase: options?.ignoreCase ?? false
+	};
+}
+
+function toWordDiffOptions(options?: DiffComputeOptions) {
+	return {
+		ignoreCase: options?.ignoreCase ?? false
+	};
+}
+
+function computeWordDiffForLine(
+	lineA: string,
+	lineB: string,
+	options?: DiffComputeOptions
+): WordDiff[] {
+	const result = diffWords(lineA, lineB, toWordDiffOptions(options));
 	return result.map((part) => ({
-		type: part.added ? 'added' as const : part.removed ? 'removed' as const : 'unchanged' as const,
+		type: part.added ? ('added' as const) : part.removed ? ('removed' as const) : ('unchanged' as const),
 		value: part.value
 	}));
 }
 
-export function computeDiffBetweenTexts(textA: string, textB: string): LineDiff[] {
+export function computeDiffBetweenTexts(
+	textA: string,
+	textB: string,
+	options?: DiffComputeOptions
+): LineDiff[] {
 	if (textA === textB) {
 		return [];
 	}
 
-	const result = diffLines(textA, textB);
+	const result = diffLines(textA, textB, toLineDiffOptions(options));
 	const changes: LineDiff[] = [];
 	let lineInB = 0;
 
@@ -57,13 +81,19 @@ export function computeDiffBetweenTexts(textA: string, textB: string): LineDiff[
 				for (let j = 0; j < maxLen; j++) {
 					lineInB++;
 					if (j < removedLines.length && j < addedLines.length) {
-						const wordDiffs = computeWordDiffForLine(removedLines[j], addedLines[j]);
+						const wordDiffs = computeWordDiffForLine(
+							removedLines[j],
+							addedLines[j],
+							options
+						);
 						const hasChanges = wordDiffs.some((w) => w.type !== 'unchanged');
 						changes.push({
 							type: hasChanges ? 'modified' : 'unchanged',
 							lineNumber: lineInB,
 							content: addedLines[j],
-							wordDiffs: hasChanges ? wordDiffs.filter((w) => w.type !== 'removed') : undefined
+							wordDiffs: hasChanges
+								? wordDiffs.filter((w) => w.type !== 'removed')
+								: undefined
 						});
 					} else if (j < addedLines.length) {
 						changes.push({
@@ -100,13 +130,17 @@ export function computeDiffBetweenTexts(textA: string, textB: string): LineDiff[
 	return changes;
 }
 
-export function computeAlignedPair(textA: string, textB: string): AlignedPairResult {
+export function computeAlignedPair(
+	textA: string,
+	textB: string,
+	options?: DiffComputeOptions
+): AlignedPairResult {
 	const empty: AlignedPairResult = { changesA: [], changesB: [], paddingA: [], paddingB: [] };
 	if (textA === textB) {
 		return empty;
 	}
 
-	const result = diffLines(textA, textB);
+	const result = diffLines(textA, textB, toLineDiffOptions(options));
 	const changesA: LineDiff[] = [];
 	const changesB: LineDiff[] = [];
 	const paddingA: PaddingEntry[] = [];
@@ -137,7 +171,11 @@ export function computeAlignedPair(textA: string, textB: string): AlignedPairRes
 				const maxLen = Math.max(removedLines.length, addedLines.length);
 				for (let j = 0; j < maxLen; j++) {
 					if (j < removedLines.length && j < addedLines.length) {
-						const wordDiffs = computeWordDiffForLine(removedLines[j], addedLines[j]);
+						const wordDiffs = computeWordDiffForLine(
+							removedLines[j],
+							addedLines[j],
+							options
+						);
 						const hasChanges = wordDiffs.some((w) => w.type !== 'unchanged');
 
 						lineInA++;
@@ -145,7 +183,9 @@ export function computeAlignedPair(textA: string, textB: string): AlignedPairRes
 							type: hasChanges ? 'modified' : 'unchanged',
 							lineNumber: lineInA,
 							content: removedLines[j],
-							wordDiffs: hasChanges ? wordDiffs.filter((w) => w.type !== 'added') : undefined,
+							wordDiffs: hasChanges
+								? wordDiffs.filter((w) => w.type !== 'added')
+								: undefined,
 							side: 'base'
 						});
 
@@ -154,7 +194,9 @@ export function computeAlignedPair(textA: string, textB: string): AlignedPairRes
 							type: hasChanges ? 'modified' : 'unchanged',
 							lineNumber: lineInB,
 							content: addedLines[j],
-							wordDiffs: hasChanges ? wordDiffs.filter((w) => w.type !== 'removed') : undefined,
+							wordDiffs: hasChanges
+								? wordDiffs.filter((w) => w.type !== 'removed')
+								: undefined,
 							side: 'target'
 						});
 					} else if (j < removedLines.length) {
@@ -258,7 +300,8 @@ export function computePairwiseDiffs(
 	texts: string[],
 	mode: DiffMode,
 	baseIndex: number,
-	aligned: boolean = false
+	aligned: boolean = false,
+	options?: DiffComputeOptions
 ): Map<number, DiffResult> {
 	const results = new Map<number, DiffResult>();
 	const emptyPadding: PaddingEntry[] = [];
@@ -278,8 +321,10 @@ export function computePairwiseDiffs(
 		const basePaddingLists: PaddingEntry[][] = [];
 
 		for (let i = 0; i < texts.length; i++) {
-			if (i === baseIndex) continue;
-			const pair = computeAlignedPair(baseText, texts[i]);
+			if (i === baseIndex) {
+				continue;
+			}
+			const pair = computeAlignedPair(baseText, texts[i], options);
 
 			results.set(i, {
 				paneIndex: i,
@@ -307,7 +352,7 @@ export function computePairwiseDiffs(
 	} else {
 		// Adjacent: each pane vs its neighbor; both sides always get decorations
 		for (let i = 0; i < texts.length - 1; i++) {
-			const pair = computeAlignedPair(texts[i], texts[i + 1]);
+			const pair = computeAlignedPair(texts[i], texts[i + 1], options);
 
 			if (!results.has(i)) {
 				results.set(i, {
@@ -506,14 +551,18 @@ export function buildUnifiedLines(
 	textB: string,
 	options?: DiffViewOptions
 ): UnifiedDiffLine[] {
-	const full = buildFullUnifiedLines(textA, textB);
+	const full = buildFullUnifiedLines(textA, textB, options);
 	if (options?.contextLines === undefined) {
 		return full;
 	}
 	return collapseUnifiedContext(full, Math.max(0, options.contextLines));
 }
 
-function buildFullUnifiedLines(textA: string, textB: string): UnifiedDiffLine[] {
+function buildFullUnifiedLines(
+	textA: string,
+	textB: string,
+	options?: DiffComputeOptions
+): UnifiedDiffLine[] {
 	if (textA === textB) {
 		// Preserve trailing empty line semantics of split
 		const all = textA === '' ? [] : textA.split('\n');
@@ -525,7 +574,7 @@ function buildFullUnifiedLines(textA: string, textB: string): UnifiedDiffLine[] 
 		}));
 	}
 
-	const result = diffLines(textA, textB);
+	const result = diffLines(textA, textB, toLineDiffOptions(options));
 	const rows: UnifiedDiffLine[] = [];
 	let lineA = 0;
 	let lineB = 0;
@@ -563,7 +612,11 @@ function buildFullUnifiedLines(textA: string, textB: string): UnifiedDiffLine[] 
 				const maxLen = Math.max(removedLines.length, addedChunk.length);
 				for (let j = 0; j < maxLen; j++) {
 					if (j < removedLines.length && j < addedChunk.length) {
-						const wordDiffs = computeWordDiffForLine(removedLines[j], addedChunk[j]);
+						const wordDiffs = computeWordDiffForLine(
+							removedLines[j],
+							addedChunk[j],
+							options
+						);
 						const hasChanges = wordDiffs.some((w) => w.type !== 'unchanged');
 						lineA += 1;
 						rows.push({
@@ -678,17 +731,26 @@ function collapseUnifiedContext(
 	return out;
 }
 
+/** Stable key for a collapsed omitted region (used by expand-all / click-to-expand). */
+export function unifiedSeparatorKey(
+	expandFromA: number,
+	expandToA: number,
+	expandFromB: number,
+	expandToB: number
+): string {
+	return `${expandFromA}:${expandToA}:${expandFromB}:${expandToB}`;
+}
+
 /**
- * Unified rows with collapsed context: only `contextLines` around each change
- * hunk, with separator rows for omitted regions (git-style).
+ * Collapse a full unified line sequence into rows with separator markers for
+ * omitted context. Pass keys from {@link unifiedSeparatorKey} in
+ * `expandedSeparators` to force those omitted ranges to stay fully expanded.
  */
-export function buildUnifiedRows(
-	textA: string,
-	textB: string,
-	contextLines: number = DEFAULT_CONTEXT_LINES
+export function collapseUnifiedLines(
+	full: UnifiedDiffLine[],
+	contextLines: number = DEFAULT_CONTEXT_LINES,
+	expandedSeparators: ReadonlySet<string> = new Set()
 ): UnifiedRow[] {
-	// Full sequence first so separators can describe omitted ranges
-	const full = buildFullUnifiedLines(textA, textB);
 	if (full.length === 0) {
 		return [];
 	}
@@ -733,6 +795,15 @@ export function buildUnifiedRows(
 		const toA = last.lineNumberA ?? fromA;
 		const fromB = first.lineNumberB ?? 0;
 		const toB = last.lineNumberB ?? fromB;
+		const key = unifiedSeparatorKey(fromA, toA, fromB, toB);
+
+		if (expandedSeparators.has(key)) {
+			for (let k = start; k < i; k++) {
+				rows.push(full[k]);
+			}
+			continue;
+		}
+
 		rows.push({
 			kind: 'separator',
 			omitted,
@@ -747,3 +818,35 @@ export function buildUnifiedRows(
 	return rows;
 }
 
+/**
+ * Unified rows with collapsed context: only `contextLines` around each change
+ * hunk, with separator rows for omitted regions (git-style).
+ *
+ * Pass `expandedKeys` (from unifiedSeparatorKey) to force those omitted runs
+ * to render as context lines instead of separators.
+ */
+export function buildUnifiedRows(
+	textA: string,
+	textB: string,
+	contextLines: number = DEFAULT_CONTEXT_LINES,
+	expandedKeys?: ReadonlySet<string>,
+	options?: DiffComputeOptions
+): UnifiedRow[] {
+	const full = buildFullUnifiedLines(textA, textB, options);
+	return collapseUnifiedLines(full, contextLines, expandedKeys ?? new Set());
+}
+
+/** Count added/removed lines from a unified row list (ignores separators and context). */
+export function summarizeUnifiedRows(rows: UnifiedRow[]): DiffStats {
+	let added = 0;
+	let removed = 0;
+	const modified = 0;
+	for (const row of rows) {
+		if (row.kind === 'added') {
+			added += 1;
+		} else if (row.kind === 'removed') {
+			removed += 1;
+		}
+	}
+	return { added, removed, modified };
+}

@@ -15,7 +15,11 @@
 		setChangeStyleAttr
 	} from '../codemirror/diff-decorations.js';
 	import { createSyncScrollPlugin } from '../codemirror/sync-scroll.js';
-	import { detectLanguage, loadLanguageByName } from '../codemirror/language-detect.js';
+	import {
+		detectLanguage,
+		loadLanguageByName,
+		languageFromFilename
+	} from '../codemirror/language-detect.js';
 	import { getThemeExtension } from '../codemirror/themes.js';
 	import { settings } from '../stores/settings.svelte.js';
 	import { paneStore } from '../stores/panes.svelte.js';
@@ -74,6 +78,11 @@
 				view.dispatch({
 					changes: { from: 0, to: view.state.doc.length, insert: text }
 				});
+			}
+			paneStore.setLabel(paneId, file.name);
+			const lang = languageFromFilename(file.name);
+			if (lang) {
+				paneStore.setManualLanguage(paneId, lang);
 			}
 			toast.success(`Loaded ${file.name}`);
 		} catch (err) {
@@ -240,7 +249,7 @@
 </script>
 
 <div
-	class="h-full border-r border-gray-200 dark:border-gray-700 last:border-r-0 overflow-hidden relative"
+	class="h-full overflow-hidden relative"
 	class:ring-2={isDraggingOver}
 	class:ring-blue-500={isDraggingOver}
 	class:ring-inset={isDraggingOver}

@@ -3,6 +3,7 @@
 	import { settings } from '../stores/settings.svelte.js';
 	import { diffStore } from '../stores/diff.svelte.js';
 	import DiffPane from './DiffPane.svelte';
+	import ChangeMinimap from './ChangeMinimap.svelte';
 	import EmptyState from './EmptyState.svelte';
 	import UnifiedDiffView from './UnifiedDiffView.svelte';
 	import { shouldSkipDiff, shouldShowWarning, formatLineCount } from '../large-file-utils.js';
@@ -42,15 +43,20 @@
 			<UnifiedDiffView />
 		</div>
 	{:else}
-		<!-- Desktop: side-by-side grid -->
+		<!-- Desktop: side-by-side grid with change minimap -->
 		<div class="hidden md:grid flex-1 min-h-0" style:grid-template-columns={gridCols}>
 			{#each paneStore.panes as pane, index (pane.id)}
-				<DiffPane
-					paneId={pane.id}
-					paneIndex={index}
-					diffs={diffStore.getDiffsForPane(index)}
-					padding={diffStore.getPaddingForPane(index)}
-				/>
+				<div class="flex min-w-0 h-full border-r border-gray-200 dark:border-gray-700 last:border-r-0">
+					<div class="flex-1 min-w-0 h-full overflow-hidden">
+						<DiffPane
+							paneId={pane.id}
+							paneIndex={index}
+							diffs={diffStore.getDiffsForPane(index)}
+							padding={diffStore.getPaddingForPane(index)}
+						/>
+					</div>
+					<ChangeMinimap paneIndex={index} />
+				</div>
 			{/each}
 		</div>
 

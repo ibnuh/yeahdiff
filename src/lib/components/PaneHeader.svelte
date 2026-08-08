@@ -19,6 +19,11 @@
 	const isBase = $derived(settings.diffMode === 'base' && settings.baseIndex === paneIndex);
 
 	const lineCount = $derived(pane?.content ? pane.content.split('\n').length : 0);
+	const displayLabel = $derived(pane?.label?.trim() || `Pane ${paneIndex + 1}`);
+
+	let editingLabel = $state(false);
+	let labelDraft = $state('');
+	let labelInputEl: HTMLInputElement | null = $state(null);
 
 	function handleLanguageChange(e: Event) {
 		const value = (e.target as HTMLSelectElement).value;
@@ -26,8 +31,42 @@
 		paneStore.setManualLanguage(paneId, lang);
 	}
 
+	function startEditLabel() {
+		labelDraft = pane?.label ?? '';
+		editingLabel = true;
+		queueMicrotask(() => {
+			labelInputEl?.focus();
+			labelInputEl?.select();
+		});
+	}
+
+	function commitLabel() {
+		if (!editingLabel) {
+			return;
+		}
+		paneStore.setLabel(paneId, labelDraft);
+		editingLabel = false;
+	}
+
+	function cancelLabelEdit() {
+		editingLabel = false;
+		labelDraft = '';
+	}
+
+	function handleLabelKeydown(e: KeyboardEvent) {
+		if (e.key === 'Enter') {
+			e.preventDefault();
+			commitLabel();
+		} else if (e.key === 'Escape') {
+			e.preventDefault();
+			cancelLabelEdit();
+		}
+	}
+
 	async function copyContent() {
-		if (!pane?.content) return;
+		if (!pane?.content) {
+			return;
+		}
 		try {
 			await navigator.clipboard.writeText(pane.content);
 			toast.success('Copied to clipboard');
@@ -37,8 +76,22 @@
 	}
 
 	function clearContent() {
+		if ((pane?.content?.length ?? 0) > 0) {
+			if (!window.confirm('Clear this pane?')) {
+				return;
+			}
+		}
 		paneStore.updateContent(paneId, '');
 		toast.info('Pane cleared');
+	}
+
+	function removePane() {
+		if ((pane?.content?.length ?? 0) > 0) {
+			if (!window.confirm('Remove this pane and its content?')) {
+				return;
+			}
+		}
+		paneStore.removePane(paneId);
 	}
 </script>
 
@@ -49,9 +102,27 @@
 		: 'bg-gray-50 border-gray-200 dark:bg-gray-800 dark:border-gray-700'}"
 >
 	<div class="flex items-center gap-2 min-w-0">
-		<span class="font-medium text-gray-700 dark:text-gray-300 shrink-0">
-			Pane {paneIndex + 1}
-		</span>
+		{#if editingLabel}
+			<input
+				bind:this={labelInputEl}
+				class="min-w-0 max-w-[10rem] px-1.5 py-0.5 text-sm font-medium rounded border border-blue-300 dark:border-blue-700 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 outline-none focus:ring-1 focus:ring-blue-400"
+				bind:value={labelDraft}
+				placeholder="Pane {paneIndex + 1}"
+				aria-label="Pane label"
+				onblur={commitLabel}
+				onkeydown={handleLabelKeydown}
+			/>
+		{:else}
+			<button
+				type="button"
+				class="font-medium text-gray-700 dark:text-gray-300 shrink-0 max-w-[10rem] truncate hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+				onclick={startEditLabel}
+				title="Click to rename"
+				aria-label="Rename pane (current: {displayLabel})"
+			>
+				{displayLabel}
+			</button>
+		{/if}
 		{#if lineCount > 0}
 			<span class="text-xs text-gray-400 dark:text-gray-500 shrink-0">
 				{formatLineCount(lineCount)}
@@ -134,7 +205,7 @@
 		{#if paneStore.count > 2}
 			<button
 				class="p-0.5 rounded hover:bg-red-100 dark:hover:bg-red-900 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
-				onclick={() => paneStore.removePane(paneId)}
+				onclick={removePane}
 				title="Remove pane"
 				aria-label="Remove pane"
 			>

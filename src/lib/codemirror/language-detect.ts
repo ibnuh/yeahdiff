@@ -146,6 +146,54 @@ const languagePatterns: LanguagePattern[] = [
 
 export const availableLanguages: string[] = languagePatterns.map((p) => p.name);
 
+const extensionToLanguage: Record<string, string> = {
+	js: 'javascript',
+	jsx: 'javascript',
+	ts: 'javascript',
+	tsx: 'javascript',
+	mjs: 'javascript',
+	cjs: 'javascript',
+	py: 'python',
+	rs: 'rust',
+	go: 'go',
+	java: 'java',
+	c: 'cpp',
+	cpp: 'cpp',
+	cc: 'cpp',
+	cxx: 'cpp',
+	h: 'cpp',
+	hpp: 'cpp',
+	hh: 'cpp',
+	php: 'php',
+	sql: 'sql',
+	css: 'css',
+	scss: 'css',
+	sass: 'css',
+	less: 'css',
+	html: 'html',
+	htm: 'html',
+	xml: 'xml',
+	svg: 'xml',
+	json: 'json',
+	md: 'markdown',
+	markdown: 'markdown',
+	mdx: 'markdown'
+};
+
+/**
+ * Map a filename extension to a language name used by loadLanguageByName.
+ * Returns null when the extension is unknown.
+ */
+export function languageFromFilename(name: string): string | null {
+	const base = name.split(/[/\\]/).pop() ?? name;
+	const dot = base.lastIndexOf('.');
+	if (dot <= 0 || dot === base.length - 1) {
+		return null;
+	}
+	const ext = base.slice(dot + 1).toLowerCase();
+	return extensionToLanguage[ext] ?? null;
+}
+
 export interface DetectedLanguage {
 	name: string;
 	extension: Extension;

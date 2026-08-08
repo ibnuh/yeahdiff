@@ -1,9 +1,13 @@
 <script lang="ts">
 	import { settings } from '../stores/settings.svelte.js';
 	import { slide } from 'svelte/transition';
+	import { trapFocus, restoreFocus } from '../a11y/focus-trap.js';
 
 	let isOpen = $state(false);
 	let containerRef: HTMLDivElement;
+	let menuEl: HTMLDivElement | undefined = $state();
+	let previouslyFocused: Element | null = null;
+	let releaseTrap: (() => void) | null = null;
 
 	const themeOptions = [
 		{
@@ -28,23 +32,68 @@
 
 	function selectTheme(theme: 'light' | 'dark' | 'system') {
 		settings.setTheme(theme);
+		closeMenu();
+	}
+
+	function openMenu() {
+		previouslyFocused = document.activeElement;
+		isOpen = true;
+		queueMicrotask(() => {
+			const first = menuEl?.querySelector<HTMLElement>('button[role="option"]');
+			first?.focus();
+		});
+	}
+
+	function closeMenu() {
+		if (!isOpen) {
+			return;
+		}
 		isOpen = false;
+		releaseTrap?.();
+		releaseTrap = null;
+		restoreFocus(previouslyFocused);
+		previouslyFocused = null;
 	}
 
 	function toggleOpen() {
-		isOpen = !isOpen;
+		if (isOpen) {
+			closeMenu();
+		} else {
+			openMenu();
+		}
 	}
 
 	function closeOnClickOutside(e: MouseEvent) {
 		if (containerRef && !containerRef.contains(e.target as Node)) {
-			isOpen = false;
+			closeMenu();
 		}
 	}
+
+	function handleKeydown(e: KeyboardEvent) {
+		if (!isOpen) {
+			return;
+		}
+		if (e.key === 'Escape') {
+			e.preventDefault();
+			closeMenu();
+		}
+	}
+
+	$effect(() => {
+		if (!isOpen || !menuEl) {
+			return;
+		}
+		releaseTrap = trapFocus(menuEl);
+		return () => {
+			releaseTrap?.();
+			releaseTrap = null;
+		};
+	});
 
 	const currentTheme = $derived(themeOptions.find(t => t.value === settings.theme));
 </script>
 
-<svelte:window onclick={closeOnClickOutside} />
+<svelte:window onclick={closeOnClickOutside} onkeydown={handleKeydown} />
 
 <div bind:this={containerRef} class="relative">
 	<!-- Desktop Trigger Button -->
@@ -84,6 +133,7 @@
 		<div
 			class="absolute right-0 mt-2 w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden z-50"
 			role="listbox"
+			bind:this={menuEl}
 			transition:slide={{ duration: 150 }}
 		>
 			<div class="p-1.5 space-y-0.5">
