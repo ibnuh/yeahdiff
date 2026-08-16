@@ -103,6 +103,8 @@
 	<title>YeahDiff - Multi-Text Diff Comparison Tool</title>
 </svelte:head>
 
+<h1 class="sr-only">YeahDiff</h1>
+
 <div class="flex flex-col h-full {settings.fullWidth ? '' : 'max-w-screen-2xl mx-auto w-full'}">
 	<div class="sticky top-0 z-20 shrink-0">
 		<Toolbar
